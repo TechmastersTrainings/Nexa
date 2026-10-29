@@ -26,6 +26,25 @@ export interface HealthStatus {
   service: string;
 }
 
+export interface TrustedContact {
+  id: string;
+  user_id: string;
+  name: string;
+  phone_number: string;
+  relationship: string;
+  priority_order: number;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactCreatePayload {
+  name: string;
+  phone_number: string;
+  relationship: string;
+  priority_order: number;
+}
+
 class ApiService {
   async checkHealth(): Promise<HealthStatus> {
     const res = await fetch(`${API_BASE}/health`);
@@ -58,14 +77,10 @@ class ApiService {
   }
 
   async login(usernameOrEmail: string, password: string): Promise<AuthTokenResponse> {
-    const body = new URLSearchParams();
-    body.append('username', usernameOrEmail);
-    body.append('password', password);
-
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: usernameOrEmail, password }),
     });
 
     const json = await res.json();
@@ -85,6 +100,57 @@ class ApiService {
     const json = await res.json();
     if (!res.ok) {
       throw new Error(json.detail || 'Failed to fetch user profile');
+    }
+    return json;
+  }
+
+  // --- Trusted Contacts ---
+  async getContacts(token: string): Promise<TrustedContact[]> {
+    const res = await fetch(`${API_BASE}/contacts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.detail || 'Failed to fetch contacts');
+    }
+    return res.json();
+  }
+
+  async addContact(token: string, payload: ContactCreatePayload): Promise<TrustedContact> {
+    const res = await fetch(`${API_BASE}/contacts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Failed to add contact');
+    }
+    return json;
+  }
+
+  async deleteContact(token: string, contactId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/contacts/${contactId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.detail || 'Failed to delete contact');
+    }
+  }
+
+  async verifyContact(token: string, contactId: string, code: string): Promise<TrustedContact> {
+    const res = await fetch(`${API_BASE}/contacts/${contactId}/verify?code=${encodeURIComponent(code)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Verification failed');
     }
     return json;
   }

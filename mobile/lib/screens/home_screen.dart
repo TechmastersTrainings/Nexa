@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../core/api_service.dart';
+import 'contacts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -246,6 +247,60 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildDetailRow('Emergency Phone', user.phoneNumber),
                           const SizedBox(height: 14),
                           _buildDetailRow('Account UUID', user.id, isMonospace: true),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Responders Management Card
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0E131F),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.people_alt_outlined, color: Color(0xFF6366F1), size: 24),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Emergency Responders',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Manage tiered contacts & SMS broadcast',
+                                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const ContactsScreen()),
+                              );
+                            },
+                            child: const Text('Manage', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
                         ],
                       ),
                     ),

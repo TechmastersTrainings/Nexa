@@ -49,6 +49,41 @@ class UserProfile {
   };
 }
 
+class TrustedContact {
+  final String id;
+  final String userId;
+  final String name;
+  final String phoneNumber;
+  final String relationship;
+  final int priorityOrder;
+  final bool isVerified;
+  final String createdAt;
+
+  TrustedContact({
+    required this.id,
+    required this.userId,
+    required this.name,
+    required this.phoneNumber,
+    required this.relationship,
+    required this.priorityOrder,
+    required this.isVerified,
+    required this.createdAt,
+  });
+
+  factory TrustedContact.fromJson(Map<String, dynamic> json) {
+    return TrustedContact(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      name: json['name'] as String,
+      phoneNumber: json['phone_number'] as String,
+      relationship: json['relationship'] as String? ?? 'Family',
+      priorityOrder: json['priority_order'] as int? ?? 1,
+      isVerified: json['is_verified'] as bool? ?? false,
+      createdAt: json['created_at'] as String? ?? '',
+    );
+  }
+}
+
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
@@ -82,11 +117,11 @@ class ApiService {
     try {
       final res = await http.post(
         Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'username': email.trim(),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.trim(),
           'password': password,
-        },
+        }),
       ).timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(res.body);
@@ -168,6 +203,79 @@ class ApiService {
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Profile fetch failed: ${e.toString()}');
+    }
+  }
+
+  // --- Trusted Contacts ---
+  Future<List<TrustedContact>> getContacts(String token) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/contacts'),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        return data.map((e) => TrustedContact.fromJson(e)).toList();
+      } else {
+        final detail = jsonDecode(res.body)['detail'];
+        throw ApiException(detail is String ? detail : 'Failed to fetch contacts.', res.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Contacts retrieval failed: ${e.toString()}');
+    }
+  }
+
+  Future<TrustedContact> addContact(
+    String token, {
+    required String name,
+    required String phoneNumber,
+    required String relationship,
+    required int priorityOrder,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/contacts'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'name': name.trim(),
+          'phone_number': phoneNumber.trim(),
+          'relationship': relationship,
+          'priority_order': priorityOrder,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 201) {
+        return TrustedContact.fromJson(data);
+      } else {
+        final detail = data['detail'];
+        throw ApiException(detail is String ? detail : 'Failed to add contact.', res.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Add contact failed: ${e.toString()}');
+    }
+  }
+
+  Future<void> deleteContact(String token, String contactId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/contacts/$contactId'),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode != 204) {
+        final detail = jsonDecode(res.body)['detail'];
+        throw ApiException(detail is String ? detail : 'Failed to delete contact.', res.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Delete contact failed: ${e.toString()}');
     }
   }
 }

@@ -9,6 +9,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ContactsManager } from './ContactsManager';
 
 export const Dashboard: React.FC = () => {
   const { user, refreshProfile, isLoading } = useAuth();
@@ -59,7 +60,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Grid: User Profile, Security Specifications, System Services */}
+      {/* Main Grid: User Profile, Security Specifications, Contacts Manager */}
       <div className="dashboard-grid">
         {/* Card 1: User Profile & Identity Verification */}
         <div className="dashboard-card profile-card">
@@ -88,7 +89,7 @@ export const Dashboard: React.FC = () => {
               <span className="field-label">Primary Mobile</span>
               <div className="phone-val-wrap">
                 <span className="field-val">{user.phone_number}</span>
-                <span className="status-chip chip-amber">Pending OTP (Phase 2)</span>
+                <span className="status-chip chip-emerald">Active Account</span>
               </div>
             </div>
 
@@ -166,7 +167,10 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Platform Roadmap & Feature Readiness */}
+        {/* Card 3: Emergency Responders Management */}
+        <ContactsManager />
+
+        {/* Card 4: Platform Roadmap & Feature Readiness */}
         <div className="dashboard-card roadmap-card">
           <div className="card-header">
             <div className="card-header-icon">
@@ -183,27 +187,27 @@ export const Dashboard: React.FC = () => {
               <div className="roadmap-badge ready">Phase 1</div>
               <div className="roadmap-text">
                 <span className="roadmap-title">Authentication & Core Schema</span>
-                <span className="roadmap-sub">FastAPI, PostgreSQL, Argon2id, JWT & Companion UI</span>
+                <span className="roadmap-sub">FastAPI, PostgreSQL, Argon2id, JWT, React & Flutter Clients</span>
               </div>
               <span className="status-tag tag-ready">Complete</span>
             </div>
 
-            <div className="roadmap-row upcoming">
-              <div className="roadmap-badge">Phase 2</div>
+            <div className="roadmap-row passed">
+              <div className="roadmap-badge ready">Phase 2</div>
               <div className="roadmap-text">
                 <span className="roadmap-title">Trusted Contacts & Verification</span>
-                <span className="roadmap-sub">Tiered emergency responders, OTP SMS verification</span>
+                <span className="roadmap-sub">Tiered emergency responders, priority ordering, OTP verification</span>
               </div>
-              <span className="status-tag tag-next">Next Up</span>
+              <span className="status-tag tag-ready">Implemented</span>
             </div>
 
-            <div className="roadmap-row pending">
+            <div className="roadmap-row upcoming">
               <div className="roadmap-badge">Phase 3</div>
               <div className="roadmap-text">
                 <span className="roadmap-title">Offline Voice Recognition (Vosk)</span>
                 <span className="roadmap-sub">On-device keyword detection ("Help", "Bachao")</span>
               </div>
-              <span className="status-tag">Queued</span>
+              <span className="status-tag tag-next">Next Up</span>
             </div>
 
             <div className="roadmap-row pending">
