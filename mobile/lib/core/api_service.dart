@@ -278,4 +278,28 @@ class ApiService {
       throw ApiException('Delete contact failed: ${e.toString()}');
     }
   }
+
+  Future<Map<String, dynamic>> syncIncidentBatch(String token, List<Map<String, dynamic>> incidents) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/incidents/sync'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'incidents': incidents}),
+      ).timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        return data;
+      } else {
+        final detail = data['detail'];
+        throw ApiException(detail is String ? detail : 'Batch sync failed.', res.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Batch sync error: ${e.toString()}');
+    }
+  }
 }

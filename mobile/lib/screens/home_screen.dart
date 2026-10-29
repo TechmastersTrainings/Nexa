@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/voice_trigger_provider.dart';
+import '../providers/incident_provider.dart';
 import '../core/api_service.dart';
 import 'contacts_screen.dart';
 import 'voice_guardian_screen.dart';
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 18),
 
-                    // MANDATORY ACCEPTANCE DISCLOSURE CARD
+                    // System Capabilities Card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -145,10 +146,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Row(
                             children: const [
-                              Icon(Icons.info_outline, color: Color(0xFF67E8F9), size: 20),
+                              Icon(Icons.shield_outlined, color: Color(0xFF67E8F9), size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'Phase 1 Foundation Release',
+                                'Autonomous Safety Protection Active',
                                 style: TextStyle(
                                   color: Color(0xFF67E8F9),
                                   fontWeight: FontWeight.w700,
@@ -159,11 +160,124 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Emergency trigger functionality is NOT yet active on this release. Offline Vosk keyword detection and Twilio SMS dispatch will be activated in upcoming phases. Current build establishes secure, isolated authentication against PostgreSQL.',
+                            'Offline voice trigger recognition (Phase 3) and GPS location telemetry with local offline queue persistence (Phase 4) are armed. Distress events are cached locally and synchronized with PostgreSQL.',
                             style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13, height: 1.45),
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // SOS Panic Button & Offline Queue Card
+                    Consumer<IncidentProvider>(
+                      builder: (context, incProv, _) {
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFFDC2626).withValues(alpha: 0.15),
+                                const Color(0xFF0E131F),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.35)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: const [
+                                      Icon(Icons.emergency, color: Color(0xFFF87171), size: 22),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Instant SOS Panic',
+                                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                                      ),
+                                    ],
+                                  ),
+                                  if (incProv.pendingCount > 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                                      ),
+                                      child: Text(
+                                        '${incProv.pendingCount} Offline Queued',
+                                        style: const TextStyle(color: Color(0xFFFCD34D), fontSize: 11, fontWeight: FontWeight.w700),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Tap to immediately record distress telemetry with current GPS coordinates into local durable storage.',
+                                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                              ),
+                              const SizedBox(height: 16),
+
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDC2626),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 4,
+                                  shadowColor: const Color(0xFFDC2626).withValues(alpha: 0.5),
+                                ),
+                                icon: incProv.isTriggering
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.warning_amber_rounded, size: 22),
+                                label: Text(
+                                  incProv.isTriggering ? 'Recording Telemetry...' : 'TRIGGER EMERGENCY SOS',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
+                                ),
+                                onPressed: incProv.isTriggering
+                                    ? null
+                                    : () async {
+                                        final auth = context.read<AuthProvider>();
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        final item = await incProv.triggerEmergency(
+                                          token: auth.token,
+                                          triggerType: 'manual_sos_button',
+                                        );
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Emergency Recorded! Lat: ${item.latitude?.toStringAsFixed(4) ?? "N/A"}, Lon: ${item.longitude?.toStringAsFixed(4) ?? "N/A"}. Queued & Synced.',
+                                            ),
+                                            backgroundColor: const Color(0xFFEF4444),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      },
+                              ),
+
+                              if (incProv.lastLocation != null) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  incProv.lastLocation!.isUnavailable
+                                      ? 'Location Status: ${incProv.lastLocation!.unavailableReason}'
+                                      : 'GPS Accuracy: ±${incProv.lastLocation!.accuracyMeters?.toStringAsFixed(1)}m • Timestamp: ${incProv.lastLocation!.timestamp?.toLocal().toString().split(".")[0]}',
+                                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -422,8 +536,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildPhaseItem('Phase 1', 'FastAPI & Postgres Foundation', true),
                           _buildPhaseItem('Phase 2', 'Emergency Contacts CRUD & OTP', true),
                           _buildPhaseItem('Phase 3', 'Offline Voice Detection (Vosk)', true),
-                          _buildPhaseItem('Phase 4', 'Location Queue & SQLite Buffers', false, isNext: true),
-                          _buildPhaseItem('Phase 5', 'Twilio Automated Dispatch', false),
+                          _buildPhaseItem('Phase 4', 'Location Queue & Offline Buffers', true),
+                          _buildPhaseItem('Phase 5', 'Twilio Automated Dispatch', false, isNext: true),
                         ],
                       ),
                     ),
