@@ -335,5 +335,70 @@ class ApiService {
       throw ApiException('Alert dispatch error: ${e.toString()}');
     }
   }
+
+  // --- Community Safety Map ---
+  Future<List<Map<String, dynamic>>> getSafetyZones({
+    required double lat,
+    required double lng,
+    double radiusKm = 10.0,
+    String? category,
+  }) async {
+    try {
+      var uri = '$baseUrl/safety-map/zones?lat=$lat&lng=$lng&radius_km=$radiusKm';
+      if (category != null) {
+        uri += '&category=${Uri.encodeComponent(category)}';
+      }
+      final res = await http.get(Uri.parse(uri)).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final List list = jsonDecode(res.body);
+        return list.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> submitSafetyReport(
+    String token, {
+    required String title,
+    String? description,
+    required String category,
+    required int severityLevel,
+    required double latitude,
+    required double longitude,
+    double radiusMeters = 150.0,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/safety-map/reports'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'title': title.trim(),
+          'description': description?.trim(),
+          'category': category,
+          'severity_level': severityLevel,
+          'latitude': latitude,
+          'longitude': longitude,
+          'radius_meters': radiusMeters,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 201) {
+        return data;
+      } else {
+        final detail = data['detail'];
+        throw ApiException(detail is String ? detail : 'Safety report submission failed.', res.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Report submission error: ${e.toString()}');
+    }
+  }
 }
+
 

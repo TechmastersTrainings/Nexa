@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, health, users, contacts, incidents, alerts, ml
+from app.api.v1.endpoints import auth, health, users, contacts, incidents, alerts, ml, safety_map
 
 api_router = APIRouter()
 
@@ -10,5 +10,7 @@ api_router.include_router(contacts.router)
 api_router.include_router(incidents.router)
 api_router.include_router(alerts.router)
 api_router.include_router(ml.router)
+api_router.include_router(safety_map.router)
+
 
 

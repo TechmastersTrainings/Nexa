@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { ContactsManager } from './ContactsManager';
 import { IncidentsLiveMap } from './IncidentsLiveMap';
 import { VoiceStressBench } from './VoiceStressBench';
+import { CommunitySafetyMap } from './CommunitySafetyMap';
 
 export const Dashboard: React.FC = () => {
   const { user, token, refreshProfile, isLoading } = useAuth();
@@ -212,11 +213,20 @@ export const Dashboard: React.FC = () => {
               <span className="status-tag tag-ready">Complete</span>
             </div>
 
-            <div className="roadmap-row upcoming">
-              <div className="roadmap-badge">Phase 8</div>
+            <div className="roadmap-row passed">
+              <div className="roadmap-badge ready">Phase 8</div>
               <div className="roadmap-text">
-                <span className="roadmap-title">Community Safety Map & Heatmaps</span>
-                <span className="roadmap-sub">Danger zones geospatial clustering & safe routing</span>
+                <span className="roadmap-title">Community Safety Map & Danger Zones</span>
+                <span className="roadmap-sub">Geospatial hazard clustering, radius queries & safe havens</span>
+              </div>
+              <span className="status-tag tag-ready">Complete</span>
+            </div>
+
+            <div className="roadmap-row upcoming">
+              <div className="roadmap-badge">Phase 9-10</div>
+              <div className="roadmap-text">
+                <span className="roadmap-title">E2E Resilience Suite & Production Deployment</span>
+                <span className="roadmap-sub">Full integration verification, Dockerization & production orchestration</span>
               </div>
               <span className="status-tag tag-next">Next Up</span>
             </div>
@@ -226,6 +236,9 @@ export const Dashboard: React.FC = () => {
 
       {/* Phase 7: Vocal Distress Analysis Bench */}
       <VoiceStressBench token={token} />
+
+      {/* Phase 8: Community Safety Map & Danger Zones */}
+      <CommunitySafetyMap token={token} />
 
       {/* Phase 5 & 6: Live Incident & Distress Monitor */}
       <IncidentsLiveMap token={token} />

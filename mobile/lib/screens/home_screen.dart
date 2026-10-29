@@ -6,6 +6,7 @@ import '../providers/incident_provider.dart';
 import '../core/api_service.dart';
 import 'contacts_screen.dart';
 import 'voice_guardian_screen.dart';
+import 'safety_map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -514,6 +515,60 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
+                    const SizedBox(height: 16),
+
+                    // Community Safety Map Action Card (Phase 8)
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0E131F),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFF0EA5E9).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0EA5E9).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.map_outlined, color: Color(0xFF38BDF8), size: 24),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Community Safety Map',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Perimeter hazards, safe havens & kiosks',
+                                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0EA5E9),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const SafetyMapScreen()),
+                              );
+                            },
+                            child: const Text('View', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 20),
 
                     // Roadmap Card
@@ -536,13 +591,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          _buildPhaseItem('Phase 1', 'FastAPI & Postgres Foundation', true),
-                          _buildPhaseItem('Phase 2', 'Emergency Contacts CRUD & OTP', true),
-                          _buildPhaseItem('Phase 3', 'Offline Voice Detection (Vosk)', true),
-                          _buildPhaseItem('Phase 4', 'Location Queue & Offline Buffers', true),
-                          _buildPhaseItem('Phase 5', 'Twilio Automated Dispatch', true),
-                          _buildPhaseItem('Phase 6', 'Live Monitor Companion Dashboard', true),
-                          _buildPhaseItem('Phase 7', 'Voice-Stress ML Classification', false, isNext: true),
+                          _buildPhaseItem('Phase 1-4', 'Core Telemetry, Contacts & Voice', true),
+                          _buildPhaseItem('Phase 5-6', 'Twilio Alerts & Live Monitor', true),
+                          _buildPhaseItem('Phase 7', 'Voice-Stress ML Classification', true),
+                          _buildPhaseItem('Phase 8', 'Community Safety Map & Sanctuaries', true),
+                          _buildPhaseItem('Phase 9-10', 'E2E Resilience & Docker Deploy', false, isNext: true),
                         ],
                       ),
                     ),

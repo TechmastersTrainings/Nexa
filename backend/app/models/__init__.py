@@ -6,6 +6,7 @@ from app.models.device import UserDevice
 from app.models.incident import Incident
 from app.models.alert import IncidentAlertLog
 from app.models.session import RefreshTokenSession
+from app.models.safety_zone import SafetyReport
 
 __all__ = [
     "Base",
@@ -16,5 +17,7 @@ __all__ = [
     "UserDevice",
     "Incident",
     "IncidentAlertLog",
-    "RefreshTokenSession"
+    "RefreshTokenSession",
+    "SafetyReport",
 ]
+

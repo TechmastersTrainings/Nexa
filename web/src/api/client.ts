@@ -325,6 +325,56 @@ class ApiService {
     }
     return json;
   }
+
+  // --- Community Safety Map & Danger Zones ---
+  async getSafetyZones(lat: number, lng: number, radiusKm: number = 10, category?: string): Promise<SafetyReport[]> {
+    let url = `${API_BASE}/safety-map/zones?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`;
+    if (category) {
+      url += `&category=${encodeURIComponent(category)}`;
+    }
+    const res = await fetch(url);
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.detail || 'Failed to fetch safety zones');
+    }
+    return res.json();
+  }
+
+  async submitSafetyReport(token: string, payload: SafetyReportCreatePayload): Promise<SafetyReport> {
+    const res = await fetch(`${API_BASE}/safety-map/reports`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Failed to submit safety report');
+    }
+    return json;
+  }
+
+  async upvoteSafetyReport(token: string, reportId: string): Promise<SafetyReport> {
+    const res = await fetch(`${API_BASE}/safety-map/reports/${reportId}/upvote`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Upvote failed');
+    }
+    return json;
+  }
+
+  async getRecentSafetyReports(): Promise<SafetyReport[]> {
+    const res = await fetch(`${API_BASE}/safety-map/reports/recent`);
+    if (!res.ok) {
+      return [];
+    }
+    return res.json();
+  }
 }
 
 export interface AcousticFeatures {
@@ -344,5 +394,33 @@ export interface StressAnalysisResult {
   privacy_guarantee: string;
 }
 
+export interface SafetyReport {
+  id: string;
+  reporter_id: string | null;
+  title: string;
+  description: string | null;
+  category: string;
+  severity_level: number;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  is_verified: boolean;
+  upvotes: number;
+  distance_km?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SafetyReportCreatePayload {
+  title: string;
+  description?: string;
+  category: string;
+  severity_level: number;
+  latitude: number;
+  longitude: number;
+  radius_meters?: number;
+}
+
 export const api = new ApiService();
+
 
