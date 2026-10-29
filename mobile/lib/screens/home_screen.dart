@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/voice_trigger_provider.dart';
 import '../core/api_service.dart';
 import 'contacts_screen.dart';
+import 'voice_guardian_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -304,6 +306,97 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Voice Guardian Action Card (Phase 3)
+                    Consumer<VoiceTriggerProvider>(
+                      builder: (context, voiceProv, _) {
+                        final isGuarding = voiceProv.isListening;
+                        return Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0E131F),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isGuarding
+                                  ? const Color(0xFF06B6D4).withValues(alpha: 0.5)
+                                  : const Color(0xFF1E293B),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isGuarding
+                                      ? const Color(0xFF06B6D4).withValues(alpha: 0.2)
+                                      : const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  isGuarding ? Icons.mic : Icons.mic_none,
+                                  color: isGuarding ? const Color(0xFF67E8F9) : const Color(0xFF94A3B8),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'Voice Guardian',
+                                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isGuarding
+                                                ? const Color(0xFF06B6D4).withValues(alpha: 0.2)
+                                                : const Color(0xFF1E293B),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            isGuarding ? 'ARMED' : 'STANDBY',
+                                            style: TextStyle(
+                                              color: isGuarding ? const Color(0xFF67E8F9) : const Color(0xFF64748B),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Offline on-device safe word detection',
+                                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isGuarding ? const Color(0xFF06B6D4) : const Color(0xFF6366F1),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const VoiceGuardianScreen()),
+                                  );
+                                },
+                                child: const Text('Open', style: TextStyle(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 20),
 
                     // Roadmap Card
@@ -327,9 +420,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 14),
                           _buildPhaseItem('Phase 1', 'FastAPI & Postgres Foundation', true),
-                          _buildPhaseItem('Phase 2', 'Emergency Contacts CRUD & OTP', false, isNext: true),
-                          _buildPhaseItem('Phase 3', 'Offline Voice Detection (Vosk)', false),
-                          _buildPhaseItem('Phase 4', 'Location Queue & SQLite Buffers', false),
+                          _buildPhaseItem('Phase 2', 'Emergency Contacts CRUD & OTP', true),
+                          _buildPhaseItem('Phase 3', 'Offline Voice Detection (Vosk)', true),
+                          _buildPhaseItem('Phase 4', 'Location Queue & SQLite Buffers', false, isNext: true),
                           _buildPhaseItem('Phase 5', 'Twilio Automated Dispatch', false),
                         ],
                       ),

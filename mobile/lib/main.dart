@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/voice_trigger_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -17,6 +18,7 @@ class NexaSafetyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..initializeAuth()),
+        ChangeNotifierProvider(create: (_) => VoiceTriggerProvider()),
       ],
       child: MaterialApp(
         title: 'Nexa AI Safety',
