@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { ContactsManager } from './ContactsManager';
 import { IncidentsLiveMap } from './IncidentsLiveMap';
+import { VoiceStressBench } from './VoiceStressBench';
 
 export const Dashboard: React.FC = () => {
   const { user, token, refreshProfile, isLoading } = useAuth();
@@ -202,28 +203,31 @@ export const Dashboard: React.FC = () => {
               <span className="status-tag tag-ready">Active</span>
             </div>
 
-            <div className="roadmap-row upcoming">
-              <div className="roadmap-badge">Phase 7</div>
+            <div className="roadmap-row passed">
+              <div className="roadmap-badge ready">Phase 7</div>
               <div className="roadmap-text">
                 <span className="roadmap-title">Voice-Stress ML Classification</span>
                 <span className="roadmap-sub">Acoustic feature analysis & vocal distress score</span>
               </div>
-              <span className="status-tag tag-next">Next Up</span>
+              <span className="status-tag tag-ready">Complete</span>
             </div>
 
-            <div className="roadmap-row pending">
+            <div className="roadmap-row upcoming">
               <div className="roadmap-badge">Phase 8</div>
               <div className="roadmap-text">
-                <span className="roadmap-title">Community Safety Map</span>
-                <span className="roadmap-sub">Danger zones heatmap & safe route navigation</span>
+                <span className="roadmap-title">Community Safety Map & Heatmaps</span>
+                <span className="roadmap-sub">Danger zones geospatial clustering & safe routing</span>
               </div>
-              <span className="status-tag">Queued</span>
+              <span className="status-tag tag-next">Next Up</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Live Incident & Distress Monitor */}
+      {/* Phase 7: Vocal Distress Analysis Bench */}
+      <VoiceStressBench token={token} />
+
+      {/* Phase 5 & 6: Live Incident & Distress Monitor */}
       <IncidentsLiveMap token={token} />
     </div>
   );

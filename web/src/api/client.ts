@@ -283,6 +283,66 @@ class ApiService {
     }
     return res.json();
   }
+
+  // --- Voice-Stress ML Classification ---
+  async analyzeStress(
+    token: string,
+    payload: {
+      raw_audio_base64?: string;
+      sample_rate?: number;
+      feature_override?: Record<string, number>;
+    }
+  ): Promise<StressAnalysisResult> {
+    const res = await fetch(`${API_BASE}/ml/stress-analysis`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Vocal stress analysis failed');
+    }
+    return json;
+  }
+
+  async analyzeStressFile(token: string, file: File): Promise<StressAnalysisResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/ml/stress-analysis/file`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Audio file analysis failed');
+    }
+    return json;
+  }
+}
+
+export interface AcousticFeatures {
+  rms_energy: number;
+  zero_crossing_rate: number;
+  high_frequency_ratio: number;
+  amplitude_variance: number;
+  estimated_pitch_hz: number | null;
+}
+
+export interface StressAnalysisResult {
+  distress_score: number;
+  risk_level: 'NORMAL' | 'ELEVATED_STRESS' | 'CRITICAL_DISTRESS';
+  confidence: number;
+  features: AcousticFeatures;
+  methodology: string;
+  privacy_guarantee: string;
 }
 
 export const api = new ApiService();
+
