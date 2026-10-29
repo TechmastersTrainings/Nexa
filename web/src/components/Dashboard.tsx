@@ -10,11 +10,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ContactsManager } from './ContactsManager';
+import { IncidentsLiveMap } from './IncidentsLiveMap';
 
 export const Dashboard: React.FC = () => {
-  const { user, refreshProfile, isLoading } = useAuth();
+  const { user, token, refreshProfile, isLoading } = useAuth();
 
-  if (!user) return null;
+  if (!user || !token) return null;
 
   return (
     <div className="dashboard-wrapper animate-fade-in">
@@ -184,52 +185,46 @@ export const Dashboard: React.FC = () => {
 
           <div className="roadmap-items">
             <div className="roadmap-row passed">
-              <div className="roadmap-badge ready">Phase 1</div>
+              <div className="roadmap-badge ready">Phase 1-4</div>
               <div className="roadmap-text">
-                <span className="roadmap-title">Authentication & Core Schema</span>
-                <span className="roadmap-sub">FastAPI, PostgreSQL, Argon2id, JWT, React & Flutter Clients</span>
+                <span className="roadmap-title">Core Safety & Telemetry</span>
+                <span className="roadmap-sub">Auth, Contacts, Offline Vosk Voice & GPS Durable Queue</span>
               </div>
               <span className="status-tag tag-ready">Complete</span>
             </div>
 
             <div className="roadmap-row passed">
-              <div className="roadmap-badge ready">Phase 2</div>
+              <div className="roadmap-badge ready">Phase 5-6</div>
               <div className="roadmap-text">
-                <span className="roadmap-title">Trusted Contacts & Verification</span>
-                <span className="roadmap-sub">Tiered emergency responders, priority ordering, OTP verification</span>
+                <span className="roadmap-title">Alerts Engine & Live Monitor</span>
+                <span className="roadmap-sub">Twilio automated SMS/Voice broadcast & Realtime Monitor</span>
               </div>
-              <span className="status-tag tag-ready">Implemented</span>
+              <span className="status-tag tag-ready">Active</span>
             </div>
 
             <div className="roadmap-row upcoming">
-              <div className="roadmap-badge">Phase 3</div>
+              <div className="roadmap-badge">Phase 7</div>
               <div className="roadmap-text">
-                <span className="roadmap-title">Offline Voice Recognition (Vosk)</span>
-                <span className="roadmap-sub">On-device keyword detection ("Help", "Bachao")</span>
+                <span className="roadmap-title">Voice-Stress ML Classification</span>
+                <span className="roadmap-sub">Acoustic feature analysis & vocal distress score</span>
               </div>
               <span className="status-tag tag-next">Next Up</span>
             </div>
 
             <div className="roadmap-row pending">
-              <div className="roadmap-badge">Phase 4</div>
+              <div className="roadmap-badge">Phase 8</div>
               <div className="roadmap-text">
-                <span className="roadmap-title">Offline Incident Queue & GPS</span>
-                <span className="roadmap-sub">Local SQLite buffer when cell signal is unavailable</span>
-              </div>
-              <span className="status-tag">Queued</span>
-            </div>
-
-            <div className="roadmap-row pending">
-              <div className="roadmap-badge">Phase 5</div>
-              <div className="roadmap-text">
-                <span className="roadmap-title">Real Emergency Alerts</span>
-                <span className="roadmap-sub">Twilio automated SMS, voice call alerts & push</span>
+                <span className="roadmap-title">Community Safety Map</span>
+                <span className="roadmap-sub">Danger zones heatmap & safe route navigation</span>
               </div>
               <span className="status-tag">Queued</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Live Incident & Distress Monitor */}
+      <IncidentsLiveMap token={token} />
     </div>
   );
 };

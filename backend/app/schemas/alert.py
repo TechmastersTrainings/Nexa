@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AlertLogResponse(BaseModel):
@@ -20,3 +20,16 @@ class AlertLogResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+
+class AlertDispatchRequest(BaseModel):
+    incident_id: UUID
+    alert_type: str = Field("sms", description="'sms', 'voice', or 'all'")
+    recipient_ids: Optional[List[UUID]] = Field(None, description="Optional specific contact IDs to target")
+
+
+class AlertDispatchResponse(BaseModel):
+    incident_id: UUID
+    dispatched_count: int
+    failed_count: int
+    alerts: List[AlertLogResponse]

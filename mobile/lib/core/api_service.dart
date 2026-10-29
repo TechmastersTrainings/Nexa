@@ -302,4 +302,38 @@ class ApiService {
       throw ApiException('Batch sync error: ${e.toString()}');
     }
   }
+
+  Future<Map<String, dynamic>> dispatchAlerts(
+    String token, {
+    required String incidentId,
+    String alertType = 'sms',
+    List<String>? recipientIds,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/alerts/dispatch'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'incident_id': incidentId,
+          'alert_type': alertType,
+          'recipient_ids': recipientIds,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 201) {
+        return data;
+      } else {
+        final detail = data['detail'];
+        throw ApiException(detail is String ? detail : 'Alert dispatch failed.', res.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Alert dispatch error: ${e.toString()}');
+    }
+  }
 }
+

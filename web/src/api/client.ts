@@ -45,6 +45,47 @@ export interface ContactCreatePayload {
   priority_order: number;
 }
 
+export interface IncidentRecord {
+  id: string;
+  user_id: string;
+  client_incident_id: string;
+  trigger_type: string;
+  status: string;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy_meters: number | null;
+  location_timestamp: string | null;
+  location_unavailable: boolean;
+  battery_level: number | null;
+  local_created_at: string;
+  synchronized_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AlertLog {
+  id: string;
+  incident_id: string;
+  recipient_contact_id: string | null;
+  recipient_phone: string;
+  message_body: string;
+  provider: string;
+  provider_message_id: string | null;
+  delivery_status: string;
+  status_details: string | null;
+  attempt_number: number;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AlertDispatchResult {
+  incident_id: string;
+  dispatched_count: number;
+  failed_count: number;
+  alerts: AlertLog[];
+}
+
 class ApiService {
   async checkHealth(): Promise<HealthStatus> {
     const res = await fetch(`${API_BASE}/health`);
@@ -153,6 +194,94 @@ class ApiService {
       throw new Error(json.detail || 'Verification failed');
     }
     return json;
+  }
+
+  // --- Incidents Telemetry ---
+  async getIncidents(token: string): Promise<IncidentRecord[]> {
+    const res = await fetch(`${API_BASE}/incidents`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.detail || 'Failed to fetch incidents');
+    }
+    return res.json();
+  }
+
+  async recordIncident(
+    token: string,
+    payload: {
+      client_incident_id: string;
+      trigger_type: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      accuracy_meters?: number | null;
+      location_unavailable?: boolean;
+      battery_level?: number | null;
+      local_created_at: string;
+    }
+  ): Promise<IncidentRecord> {
+    const res = await fetch(`${API_BASE}/incidents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Failed to record incident');
+    }
+    return json;
+  }
+
+  // --- Emergency Alerts Dispatch ---
+  async dispatchAlerts(
+    token: string,
+    incidentId: string,
+    alertType: 'sms' | 'voice' | 'all' = 'sms',
+    recipientIds?: string[]
+  ): Promise<AlertDispatchResult> {
+    const res = await fetch(`${API_BASE}/alerts/dispatch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        incident_id: incidentId,
+        alert_type: alertType,
+        recipient_ids: recipientIds || null,
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.detail || 'Emergency alert dispatch failed');
+    }
+    return json;
+  }
+
+  async getAlertHistory(token: string): Promise<AlertLog[]> {
+    const res = await fetch(`${API_BASE}/alerts/history`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.detail || 'Failed to fetch alert history');
+    }
+    return res.json();
+  }
+
+  async getIncidentAlerts(token: string, incidentId: string): Promise<AlertLog[]> {
+    const res = await fetch(`${API_BASE}/alerts/incident/${incidentId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.detail || 'Failed to fetch incident alerts');
+    }
+    return res.json();
   }
 }
 

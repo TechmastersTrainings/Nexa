@@ -60,6 +60,13 @@ class LocalIncidentItem {
   }
 }
 
+class FlushResult {
+  final int syncedCount;
+  final List<String> syncedIncidentIds;
+
+  FlushResult({required this.syncedCount, required this.syncedIncidentIds});
+}
+
 class IncidentQueueService {
   static const String _storageKey = 'nexa_offline_incident_queue';
   final _uuid = const Uuid();
@@ -101,10 +108,12 @@ class IncidentQueueService {
     return item;
   }
 
-  Future<int> flushQueue(String token, ApiService apiService) async {
+  Future<FlushResult> flushQueue(String token, ApiService apiService) async {
     final queue = await getPendingQueue();
     final unsynced = queue.where((i) => !i.isSynced).toList();
-    if (unsynced.isEmpty) return 0;
+    if (unsynced.isEmpty) {
+      return FlushResult(syncedCount: 0, syncedIncidentIds: []);
+    }
 
     try {
       final batchPayload = unsynced.map((item) => {
@@ -122,15 +131,24 @@ class IncidentQueueService {
       // Send to backend batch sync endpoint
       final res = await apiService.syncIncidentBatch(token, batchPayload);
       if (res['processed_count'] != null) {
+        final List<String> serverIds = [];
+        if (res['synced_incidents'] is List) {
+          for (final inc in res['synced_incidents']) {
+            if (inc['id'] != null) {
+              serverIds.add(inc['id'] as String);
+            }
+          }
+        }
+
         // Mark flushed items as synced or purge them
         queue.removeWhere((i) => unsynced.any((u) => u.clientIncidentId == i.clientIncidentId));
         await _saveQueue(queue);
-        return unsynced.length;
+        return FlushResult(syncedCount: unsynced.length, syncedIncidentIds: serverIds);
       }
     } catch (_) {
       // If network remains offline, queue items are safely preserved locally
     }
-    return 0;
+    return FlushResult(syncedCount: 0, syncedIncidentIds: []);
   }
 
   Future<void> _saveQueue(List<LocalIncidentItem> queue) async {

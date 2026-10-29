@@ -252,10 +252,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                           token: auth.token,
                                           triggerType: 'manual_sos_button',
                                         );
+                                        final dispatched = incProv.lastDispatchedCount;
                                         messenger.showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              'Emergency Recorded! Lat: ${item.latitude?.toStringAsFixed(4) ?? "N/A"}, Lon: ${item.longitude?.toStringAsFixed(4) ?? "N/A"}. Queued & Synced.',
+                                              dispatched > 0
+                                                  ? 'Emergency SOS Broadcast! Lat: ${item.latitude?.toStringAsFixed(4) ?? "N/A"}, Lon: ${item.longitude?.toStringAsFixed(4) ?? "N/A"}. Alerts sent to $dispatched contacts!'
+                                                  : 'Emergency Recorded! Lat: ${item.latitude?.toStringAsFixed(4) ?? "N/A"}, Lon: ${item.longitude?.toStringAsFixed(4) ?? "N/A"}. Queued & Synced.',
                                             ),
                                             backgroundColor: const Color(0xFFEF4444),
                                             behavior: SnackBarBehavior.floating,
@@ -537,7 +540,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildPhaseItem('Phase 2', 'Emergency Contacts CRUD & OTP', true),
                           _buildPhaseItem('Phase 3', 'Offline Voice Detection (Vosk)', true),
                           _buildPhaseItem('Phase 4', 'Location Queue & Offline Buffers', true),
-                          _buildPhaseItem('Phase 5', 'Twilio Automated Dispatch', false, isNext: true),
+                          _buildPhaseItem('Phase 5', 'Twilio Automated Dispatch', true),
+                          _buildPhaseItem('Phase 6', 'Live Monitor Companion Dashboard', true),
+                          _buildPhaseItem('Phase 7', 'Voice-Stress ML Classification', false, isNext: true),
                         ],
                       ),
                     ),

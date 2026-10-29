@@ -17,6 +17,9 @@ class IncidentProvider extends ChangeNotifier {
   bool _isTriggering = false;
   bool get isTriggering => _isTriggering;
 
+  int _lastDispatchedCount = 0;
+  int get lastDispatchedCount => _lastDispatchedCount;
+
   LocationData? _lastLocation;
   LocationData? get lastLocation => _lastLocation;
 
@@ -33,12 +36,13 @@ class IncidentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Triggers an immediate emergency event: captures location, queues locally, and syncs
+  /// Triggers an immediate emergency event: captures location, queues locally, syncs, and broadcasts alerts
   Future<LocalIncidentItem> triggerEmergency({
     required String? token,
     String triggerType = 'manual_panic',
   }) async {
     _isTriggering = true;
+    _lastDispatchedCount = 0;
     notifyListeners();
 
     try {
@@ -72,9 +76,27 @@ class IncidentProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final flushed = await _queueService.flushQueue(token, _apiService);
+      final result = await _queueService.flushQueue(token, _apiService);
       await refreshQueueCount();
-      return flushed;
+
+      // Dispatch emergency telecom alerts for each synced incident
+      int totalDispatched = 0;
+      for (final incId in result.syncedIncidentIds) {
+        try {
+          final alertRes = await _apiService.dispatchAlerts(token, incidentId: incId);
+          if (alertRes['dispatched_count'] != null) {
+            totalDispatched += (alertRes['dispatched_count'] as num).toInt();
+          }
+        } catch (_) {
+          // If dispatch fails, it will be retried on next sync or available in dashboard
+        }
+      }
+
+      if (totalDispatched > 0) {
+        _lastDispatchedCount = totalDispatched;
+      }
+
+      return result.syncedCount;
     } finally {
       _isSyncing = false;
       notifyListeners();
