@@ -121,7 +121,7 @@ export const IncidentsLiveMap: React.FC<IncidentsLiveMapProps> = ({ token }) => 
   };
 
   return (
-    <div style={{ marginTop: '2.5rem' }}>
+    <div>
       {/* Header bar */}
       <div
         style={{

@@ -122,7 +122,7 @@ export const ContactsManager: React.FC = () => {
             <Users size={20} className="text-indigo" />
           </div>
           <div>
-            <h2 className="card-title">Trusted Responders (Phase 2)</h2>
+            <h2 className="card-title">Trusted Emergency Responders</h2>
             <span className="card-caption">Tiered Emergency Dispatch Network</span>
           </div>
         </div>

@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
         <div className="health-pill" title={health ? `Connected to ${health.database} database` : 'Connecting...'}>
           <span className={`status-dot ${isHealthOnline ? 'online' : 'offline'}`}></span>
           <span className="health-text">
-            {isHealthOnline ? 'SYSTEM ACTIVE • DB CONNECTED' : 'BACKEND CONNECTING...'}
+            {isHealthOnline ? 'NETWORK SECURE • SENTINEL ACTIVE' : 'CONNECTING SECURE NETWORK...'}
           </span>
           <Activity size={14} className="health-icon" />
         </div>

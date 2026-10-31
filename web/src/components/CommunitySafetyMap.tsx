@@ -144,7 +144,6 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
   return (
     <div
       style={{
-        marginTop: '2rem',
         background: 'rgba(255, 255, 255, 0.03)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '18px',
@@ -164,7 +163,7 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
       >
         <div>
           <h3 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Map style={{ color: '#38bdf8' }} /> Phase 8: Community Safety Map & Danger Zones
+            <Map style={{ color: '#38bdf8' }} /> Community Safety & Danger Zones Map
           </h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.2rem' }}>
             Geospatial hazard telemetry, verified safe haven sanctuaries, and collective vigilance.

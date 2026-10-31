@@ -133,7 +133,6 @@ export const VoiceStressBench: React.FC<VoiceStressBenchProps> = ({ token }) => 
   return (
     <div
       style={{
-        marginTop: '2rem',
         background: 'rgba(255, 255, 255, 0.03)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '18px',
@@ -143,7 +142,7 @@ export const VoiceStressBench: React.FC<VoiceStressBenchProps> = ({ token }) => 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.2rem' }}>
         <div>
           <h3 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Activity style={{ color: '#a855f7' }} /> Phase 7: Voice-Stress ML Classification Bench
+            <Activity style={{ color: '#a855f7' }} /> Acoustic Voice-Stress AI Engine
           </h3>
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.2rem' }}>
             Scientific acoustic feature extraction (RMS energy, ZCR, high-frequency energy ratio, pitch shift).
