@@ -1,63 +1,63 @@
 /* ==========================================================================
-   NEXA AI WOMEN SAFETY PLATFORM - MODERN GLASSMORPHIC DESIGN SYSTEM
+   NEXA AI WOMEN SAFETY PLATFORM - LUMINOUS LUXURY DESIGN SYSTEM
    ========================================================================== */
 
 :root {
-  /* Color Palette - Cyber Guardian Obsidian & Electric Violet / Crimson Accent */
-  --bg-primary: #07090e;
-  --bg-secondary: #0d121d;
-  --bg-card: rgba(18, 24, 38, 0.75);
-  --bg-card-hover: rgba(26, 34, 52, 0.85);
-  --bg-card-active: rgba(33, 44, 68, 0.9);
-  --bg-glass: rgba(14, 19, 31, 0.6);
-  --bg-input: rgba(10, 14, 23, 0.8);
+  /* Radiant Luminous Pearl & Warm Rose Quartz Palette */
+  --bg-primary: #f8faff;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.88);
+  --bg-card-hover: rgba(255, 255, 255, 0.98);
+  --bg-card-active: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.8);
+  --bg-input: #ffffff;
   
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(99, 102, 241, 0.35);
-  --border-focus: #6366f1;
-  --border-danger: rgba(239, 68, 68, 0.4);
+  --border-subtle: rgba(226, 232, 240, 0.9);
+  --border-glow: rgba(139, 92, 246, 0.3);
+  --border-focus: #7c3aed;
+  --border-danger: rgba(244, 63, 94, 0.4);
 
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
   --text-muted: #64748b;
-  --text-inverse: #07090e;
+  --text-inverse: #ffffff;
 
-  /* Brand Accents */
-  --accent-primary: #6366f1;       /* Indigo */
-  --accent-primary-hover: #4f46e5;
-  --accent-cyan: #06b6d4;          /* Cyan Guardian */
-  --accent-emerald: #10b981;       /* Active Safe Status */
-  --accent-rose: #f43f5e;          /* Emergency / Danger */
-  --accent-amber: #f59e0b;         /* Warning / Pending */
+  /* Brand Accents - Vibrant & Reassuring */
+  --accent-primary: #7c3aed;       /* Royal Violet / Amethyst */
+  --accent-primary-hover: #6d28d9;
+  --accent-cyan: #0284c7;          /* Sky Blue Telemetry */
+  --accent-emerald: #059669;       /* Safe Mint Emerald */
+  --accent-rose: #f43f5e;          /* Radiant Coral / Rose SOS */
+  --accent-amber: #d97706;         /* Warm Honey Warning */
 
   /* Gradients */
-  --grad-hero: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  --grad-hero: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f43f5e 100%);
   --grad-safe: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  --grad-danger: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
-  --grad-dark-surface: linear-gradient(180deg, rgba(26, 34, 54, 0.5) 0%, rgba(13, 18, 29, 0.8) 100%);
-  --grad-glow: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  --grad-danger: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
+  --grad-dark-surface: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  --grad-glow: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Shadows & Glows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow-indigo: 0 0 25px rgba(99, 102, 241, 0.35);
-  --shadow-glow-rose: 0 0 25px rgba(244, 63, 94, 0.4);
-  --shadow-glow-safe: 0 0 20px rgba(16, 185, 129, 0.3);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 25px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.05);
+  --shadow-glow-indigo: 0 8px 24px rgba(124, 58, 237, 0.25);
+  --shadow-glow-rose: 0 8px 24px rgba(244, 63, 94, 0.35);
+  --shadow-glow-safe: 0 8px 20px rgba(16, 185, 129, 0.25);
 
   /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
   --radius-full: 9999px;
 
   /* Blur & Glass Effect */
-  --glass-blur: blur(16px);
+  --glass-blur: blur(20px);
   --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -79,11 +79,13 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Ambient Luminous Background: Warm, uplifting, pearlescent */
 body {
   background-image: 
-    radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(244, 63, 94, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 60%);
+    radial-gradient(circle at 12% 8%, rgba(254, 205, 211, 0.5) 0%, transparent 45%),
+    radial-gradient(circle at 88% 12%, rgba(237, 233, 254, 0.65) 0%, transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(224, 242, 254, 0.5) 0%, transparent 50%),
+    radial-gradient(circle at 80% 75%, rgba(254, 215, 170, 0.35) 0%, transparent 40%);
   background-attachment: fixed;
 }
 
@@ -94,13 +96,19 @@ body {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
 }
 
 @keyframes radarPing {
   0% { transform: scale(0.9); opacity: 0.9; }
-  80%, 100% { transform: scale(2.2); opacity: 0; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes ripplePulse {
+  0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.6); }
+  70% { box-shadow: 0 0 0 16px rgba(244, 63, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
 }
 
 .animate-fade-in {
@@ -124,14 +132,53 @@ input:focus, select:focus, textarea:focus, button:focus {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: rgba(241, 245, 249, 0.6);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* Utilities */
+.text-cyan { color: var(--accent-cyan); }
+.text-emerald { color: var(--accent-emerald); }
+.text-rose { color: var(--accent-rose); }
+.text-indigo { color: var(--accent-primary); }
+.text-muted { color: var(--text-muted); }
+.font-semibold { font-weight: 600; }
+.font-mono { font-family: var(--font-mono); }
+.text-xs { font-size: 0.75rem; }
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Leaflet Overrides for Luminous Clean Map */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: 1;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+
+.leaflet-popup-tip {
+  background: #ffffff !important;
 }

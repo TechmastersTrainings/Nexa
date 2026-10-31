@@ -1,156 +1,307 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import L from 'leaflet';
 import { api } from '../api/client';
-import type { SafetyReport } from '../api/client';
+import type { SafetyReport, SafetyReportCreatePayload } from '../api/client';
 import {
-  Map,
-  Shield,
+  MapPin,
+  ShieldAlert,
   AlertTriangle,
+  Building,
   PlusCircle,
   ThumbsUp,
-  MapPin,
-  ExternalLink,
   Filter,
   CheckCircle,
+  Crosshair,
+  Clock
 } from 'lucide-react';
 
 interface CommunitySafetyMapProps {
   token: string;
 }
 
+// Category visual themes
+const getCategoryTheme = (category: string) => {
+  switch (category) {
+    case 'safe_haven':
+    case 'police_booth':
+    case 'hospital':
+      return {
+        bg: '#ecfdf5',
+        border: '#a7f3d0',
+        text: '#065f46',
+        pinColor: '#059669',
+        badge: 'Safe Haven Sanctuary',
+        icon: Building,
+      };
+    case 'harassment_hotspot':
+      return {
+        bg: '#fff1f2',
+        border: '#fecdd3',
+        text: '#9f1239',
+        pinColor: '#e11d48',
+        badge: 'High Danger Area',
+        icon: ShieldAlert,
+      };
+    case 'poor_lighting':
+    case 'isolated_route':
+    default:
+      return {
+        bg: '#fffbeb',
+        border: '#fde68a',
+        text: '#92400e',
+        pinColor: '#d97706',
+        badge: 'Hazard Advisory',
+        icon: AlertTriangle,
+      };
+  }
+};
+
+const createZoneMarkerIcon = (isSafeHaven: boolean) => {
+  const color = isSafeHaven ? '#059669' : '#e11d48';
+  return L.divIcon({
+    className: 'zone-marker-pin',
+    html: `
+      <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: ${color}; border: 3px solid #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+          <span style="color: #ffffff; font-size: 13px; font-weight: 800;">${isSafeHaven ? '🛡️' : '⚠️'}</span>
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+};
+
 export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token }) => {
   const [reports, setReports] = useState<SafetyReport[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userLat, setUserLat] = useState<number>(12.9716);
-  const [userLng, setUserLng] = useState<number>(77.5946);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Filter and Query States
   const [radiusKm, setRadiusKm] = useState<number>(15);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState<SafetyReportCreatePayload>({
+    title: '',
+    description: '',
+    category: 'harassment_hotspot',
+    severity_level: 4,
+    latitude: 12.9716,
+    longitude: 77.5946,
+    radius_meters: 250,
+  });
 
-  // New report form state
-  const [formTitle, setFormTitle] = useState('');
-  const [formDesc, setFormDesc] = useState('');
-  const [formCategory, setFormCategory] = useState('poor_lighting');
-  const [formSeverity, setFormSeverity] = useState(3);
-  const [formRadius, setFormRadius] = useState(150);
+  // Leaflet Map Refs
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const radiusCircleRef = useRef<L.Circle | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
-  // Fetch user's geolocation on mount
+  // Get User Current Location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setCurrentCoords({ lat, lng });
+          setFormData((prev: SafetyReportCreatePayload) => ({ ...prev, latitude: lat, longitude: lng }));
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView([lat, lng], 13);
+          }
         },
         () => {
-          // Defaults to Bangalore MG road
+          setCurrentCoords({ lat: 12.9716, lng: 77.5946 });
         }
       );
+    } else {
+      setCurrentCoords({ lat: 12.9716, lng: 77.5946 });
     }
   }, []);
 
-  const fetchZones = useCallback(async () => {
+  // Fetch Reports from Backend
+  const loadReports = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const cat = selectedCategory === 'all' ? undefined : selectedCategory;
-      const data = await api.getSafetyZones(userLat, userLng, radiusKm, cat);
+      const lat = currentCoords ? currentCoords.lat : 12.9716;
+      const lng = currentCoords ? currentCoords.lng : 77.5946;
+      const categoryParam = selectedCategory === 'all' ? undefined : selectedCategory;
+
+      const data = await api.getSafetyZones(lat, lng, radiusKm, categoryParam);
       setReports(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load safety zones');
+      setError(err.message || 'Failed to load community safety map data');
     } finally {
       setLoading(false);
     }
-  }, [userLat, userLng, radiusKm, selectedCategory]);
+  }, [currentCoords, radiusKm, selectedCategory]);
 
   useEffect(() => {
-    fetchZones();
-  }, [fetchZones]);
+    loadReports();
+  }, [loadReports]);
 
-  const handleUpvote = async (reportId: string) => {
-    try {
-      await api.upvoteSafetyReport(token, reportId);
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, upvotes: r.upvotes + 1 } : r))
-      );
-    } catch (err: any) {
-      setError(err.message || 'Upvote failed');
+  // Initialize Leaflet Map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    const lat = currentCoords ? currentCoords.lat : 12.9716;
+    const lng = currentCoords ? currentCoords.lng : 77.5946;
+
+    const map = L.map(mapContainerRef.current, {
+      center: [lat, lng],
+      zoom: 12,
+      zoomControl: true,
+    });
+
+    // CartoDB Voyager tiles
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    markersLayerRef.current = L.layerGroup().addTo(map);
+
+    // Click on map to pin a new hazard/sanctuary
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      setFormData((prev: SafetyReportCreatePayload) => ({
+        ...prev,
+        latitude: parseFloat(e.latlng.lat.toFixed(5)),
+        longitude: parseFloat(e.latlng.lng.toFixed(5)),
+      }));
+      setIsModalOpen(true);
+    });
+
+    mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+    };
+  }, []);
+
+  // Update Radius Circle & Markers on Map
+  useEffect(() => {
+    if (!mapInstanceRef.current || !markersLayerRef.current) return;
+
+    markersLayerRef.current.clearLayers();
+
+    const lat = currentCoords ? currentCoords.lat : 12.9716;
+    const lng = currentCoords ? currentCoords.lng : 77.5946;
+
+    // Draw monitored radius circle
+    if (radiusCircleRef.current) {
+      radiusCircleRef.current.remove();
     }
-  };
+    radiusCircleRef.current = L.circle([lat, lng], {
+      radius: radiusKm * 1000,
+      color: '#7c3aed',
+      fillColor: '#8b5cf6',
+      fillOpacity: 0.08,
+      weight: 1.5,
+      dashArray: '6, 6',
+    }).addTo(mapInstanceRef.current);
 
-  const handleCreateReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formTitle.trim()) return;
-
-    try {
-      setSubmitting(true);
-      await api.submitSafetyReport(token, {
-        title: formTitle.trim(),
-        description: formDesc.trim() || undefined,
-        category: formCategory,
-        severity_level: formSeverity,
-        latitude: userLat,
-        longitude: userLng,
-        radius_meters: formRadius,
+    // Plot Zone Reports
+    reports.forEach((rep) => {
+      const isSafe = rep.severity_level === 1;
+      const marker = L.marker([rep.latitude, rep.longitude], {
+        icon: createZoneMarkerIcon(isSafe),
       });
-      setIsModalOpen(false);
-      setFormTitle('');
-      setFormDesc('');
-      await fetchZones();
+
+      // Also draw hazard radius circle for danger zones
+      if (!isSafe && rep.radius_meters) {
+        L.circle([rep.latitude, rep.longitude], {
+          radius: rep.radius_meters,
+          color: '#ef4444',
+          fillColor: '#f43f5e',
+          fillOpacity: 0.15,
+          weight: 1,
+        }).addTo(markersLayerRef.current!);
+      }
+
+      const popupHtml = `
+        <div style="padding: 4px; font-family: sans-serif; min-width: 180px;">
+          <div style="font-weight: 800; font-size: 13px; color: ${isSafe ? '#059669' : '#e11d48'}; margin-bottom: 4px;">
+            ${isSafe ? '🛡️ SAFE SANCTUARY' : '⚠️ DANGER HAZARD'}
+          </div>
+          <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 2px;">
+            ${rep.title}
+          </div>
+          <div style="font-size: 12px; color: #475569; margin-bottom: 6px;">
+            ${rep.description}
+          </div>
+          <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">
+            📍 Verified Votes: <strong>${rep.upvotes}</strong>
+          </div>
+          <button 
+            id="btn-upvote-${rep.id}"
+            style="width: 100%; background: #7c3aed; color: #ffffff; border: none; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;"
+            onclick="window.__upvoteZoneReport && window.__upvoteZoneReport('${rep.id}')"
+          >
+            👍 Verify Report (${rep.upvotes})
+          </button>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml);
+      markersLayerRef.current?.addLayer(marker);
+    });
+  }, [reports, currentCoords, radiusKm]);
+
+  // Hook global upvote for Leaflet popup
+  useEffect(() => {
+    (window as any).__upvoteZoneReport = (id: string) => {
+      handleUpvote(id);
+    };
+    return () => {
+      delete (window as any).__upvoteZoneReport;
+    };
+  }, []);
+
+  // Upvote Handler
+  const handleUpvote = async (id: string) => {
+    try {
+      const updated = await api.upvoteSafetyReport(token, id);
+      setReports((prev) => prev.map((r) => (r.id === id ? { ...r, upvotes: updated.upvotes } : r)));
+      setSuccessMsg('Thank you for community verification!');
+      setTimeout(() => setSuccessMsg(null), 3500);
     } catch (err: any) {
-      setError(err.message || 'Failed to create report');
-    } finally {
-      setSubmitting(false);
+      setError(err.message || 'Failed to verify zone');
     }
   };
 
-  const getCategoryTheme = (cat: string) => {
-    switch (cat) {
-      case 'police_booth':
-      case 'hospital':
-      case 'safe_haven':
-        return {
-          bg: 'rgba(16, 185, 129, 0.15)',
-          text: '#34d399',
-          border: 'rgba(16, 185, 129, 0.4)',
-          icon: Shield,
-        };
-      case 'poor_lighting':
-        return {
-          bg: 'rgba(245, 158, 11, 0.15)',
-          text: '#fbbf24',
-          border: 'rgba(245, 158, 11, 0.4)',
-          icon: AlertTriangle,
-        };
-      case 'harassment_hotspot':
-      case 'isolated_route':
-        return {
-          bg: 'rgba(239, 68, 68, 0.15)',
-          text: '#f87171',
-          border: 'rgba(239, 68, 68, 0.4)',
-          icon: AlertTriangle,
-        };
-      default:
-        return {
-          bg: 'rgba(99, 102, 241, 0.15)',
-          text: '#a5b4fc',
-          border: 'rgba(99, 102, 241, 0.4)',
-          icon: MapPin,
-        };
+  // Submit New Report
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      await api.submitSafetyReport(token, formData);
+      setSuccessMsg('Safety report registered & pinned to live map!');
+      setIsModalOpen(false);
+      setFormData({
+        title: '',
+        description: '',
+        category: 'harassment_hotspot',
+        severity_level: 4,
+        latitude: currentCoords ? currentCoords.lat : 12.9716,
+        longitude: currentCoords ? currentCoords.lng : 77.5946,
+        radius_meters: 250,
+      });
+      await loadReports();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to record report');
     }
   };
 
   return (
-    <div
-      style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '18px',
-        padding: '1.8rem',
-      }}
-    >
-      {/* Header bar */}
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Top Controls Header */}
       <div
         style={{
           display: 'flex',
@@ -158,32 +309,43 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '1.4rem',
+          padding: '1.4rem 1.75rem',
+          background: '#ffffff',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <div>
-          <h3 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Map style={{ color: '#38bdf8' }} /> Community Safety & Danger Zones Map
-          </h3>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-            Geospatial hazard telemetry, verified safe haven sanctuaries, and collective vigilance.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', background: '#ede9fe', color: '#7c3aed' }}>
+              COMMUNITY SENTINEL
+            </span>
+          </div>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <MapPin style={{ color: '#7c3aed' }} /> Community Safety & Danger Zones Map
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.2rem' }}>
+            Geospatial hazard telemetry, verified safe haven sanctuaries, and collective vigilance. Click anywhere on the map to pin a hazard.
           </p>
         </div>
 
         <button
+          id="btn-open-report-zone"
           onClick={() => setIsModalOpen(true)}
           style={{
-            background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+            background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)',
             color: '#fff',
             border: 'none',
-            borderRadius: '10px',
-            padding: '0.6rem 1.2rem',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1.4rem',
             fontWeight: 700,
+            fontSize: '0.92rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            boxShadow: '0 0 15px rgba(14, 165, 233, 0.4)',
+            boxShadow: '0 8px 20px rgba(124, 58, 237, 0.3)',
           }}
         >
           <PlusCircle size={18} /> Report Zone / Sanctuary
@@ -191,12 +353,18 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
       </div>
 
       {error && (
-        <div style={{ padding: '0.8rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', marginBottom: '1rem' }}>
-          {error}
+        <div style={{ padding: '0.85rem 1.25rem', borderRadius: 'var(--radius-md)', background: '#fff1f2', border: '1px solid #fecdd3', color: '#9f1239', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+          <AlertTriangle size={18} /> {error}
         </div>
       )}
 
-      {/* Filter and Radius controls */}
+      {successMsg && (
+        <div style={{ padding: '0.85rem 1.25rem', borderRadius: 'var(--radius-md)', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+          <CheckCircle size={18} /> {successMsg}
+        </div>
+      )}
+
+      {/* Filter and Radius Bar */}
       <div
         style={{
           display: 'flex',
@@ -204,31 +372,32 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '1.2rem',
-          padding: '1rem',
-          background: 'rgba(15, 23, 42, 0.4)',
-          borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
+          padding: '1rem 1.4rem',
+          background: '#ffffff',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <Filter size={14} /> Filter:
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Filter size={15} /> Filter:
           </span>
           {['all', 'poor_lighting', 'harassment_hotspot', 'isolated_route', 'safe_haven', 'police_booth', 'hospital'].map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               style={{
-                background: selectedCategory === cat ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                border: selectedCategory === cat ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                color: selectedCategory === cat ? '#38bdf8' : '#cbd5e1',
-                padding: '0.35rem 0.7rem',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
+                background: selectedCategory === cat ? 'rgba(124, 58, 237, 0.12)' : '#f8fafc',
+                border: selectedCategory === cat ? '1.5px solid #7c3aed' : '1px solid var(--border-subtle)',
+                color: selectedCategory === cat ? '#7c3aed' : 'var(--text-secondary)',
+                padding: '0.4rem 0.85rem',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.78rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 textTransform: 'capitalize',
+                transition: 'var(--transition-smooth)',
               }}
             >
               {cat.replace('_', ' ')}
@@ -237,112 +406,133 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Radius:</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Monitoring Radius:</span>
           <select
             value={radiusKm}
             onChange={(e) => setRadiusKm(Number(e.target.value))}
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '8px',
-              color: '#f8fafc',
-              padding: '0.4rem 0.6rem',
-              fontSize: '0.85rem',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)',
+              padding: '0.45rem 0.85rem',
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              cursor: 'pointer',
             }}
           >
-            <option value={2}>2 km</option>
-            <option value={5}>5 km</option>
-            <option value={15}>15 km</option>
-            <option value={30}>30 km</option>
-            <option value={50}>50 km</option>
+            <option value={2}>2 km (Local neighborhood)</option>
+            <option value={5}>5 km (Immediate ward)</option>
+            <option value={15}>15 km (City zone)</option>
+            <option value={30}>30 km (Metropolitan)</option>
+            <option value={50}>50 km (Regional)</option>
           </select>
         </div>
       </div>
 
-      {/* Reports Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+      {/* Interactive Leaflet Map for Community Safety */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)',
+          padding: '1.25rem',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Crosshair size={16} style={{ color: '#7c3aed' }} /> Interactive Map View (Click anywhere on the map to pin a hazard)
+          </span>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            Showing {reports.length} locations within {radiusKm} km
+          </span>
+        </div>
+
+        <div
+          ref={mapContainerRef}
+          style={{
+            height: '460px',
+            width: '100%',
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+            border: '1px solid var(--border-subtle)',
+            cursor: 'crosshair',
+          }}
+        />
+      </div>
+
+      {/* Safety Reports Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
         {loading ? (
-          <div style={{ color: '#94a3b8', padding: '2rem', textAlign: 'center', gridColumn: '1 / -1' }}>
-            Loading surrounding safety zones...
+          <div style={{ color: 'var(--text-muted)', padding: '2rem', textAlign: 'center', gridColumn: '1 / -1' }}>
+            Scanning surrounding safety zones...
           </div>
         ) : reports.length === 0 ? (
           <div
             style={{
-              padding: '2.5rem',
+              padding: '3rem',
               textAlign: 'center',
-              background: 'rgba(255, 255, 255, 0.02)',
-              borderRadius: '16px',
-              border: '1px dashed rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
+              background: '#ffffff',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-secondary)',
               gridColumn: '1 / -1',
+              boxShadow: 'var(--shadow-sm)'
             }}
           >
-            <CheckCircle size={36} style={{ color: '#10b981', margin: '0 auto 0.8rem' }} />
-            <p style={{ fontWeight: 600, fontSize: '1.1rem', color: '#f8fafc' }}>No Hazards Reported in Radius</p>
-            <p style={{ fontSize: '0.9rem' }}>
-              Your current surroundings ({radiusKm} km) have no recorded danger alerts.
-            </p>
+            <CheckCircle size={40} style={{ color: '#059669', margin: '0 auto 0.85rem' }} />
+            <p style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)' }}>No Danger Zones Reported in Radius</p>
+            <p style={{ fontSize: '0.92rem' }}>Your current surroundings ({radiusKm} km) have no recorded danger alerts.</p>
           </div>
         ) : (
           reports.map((report) => {
             const theme = getCategoryTheme(report.category);
             const IconComp = theme.icon;
-            const isSafeHaven = report.severity_level === 1;
 
             return (
               <div
                 key={report.id}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: '14px',
-                  padding: '1.2rem',
+                  background: '#ffffff',
+                  border: `1.5px solid ${theme.border}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.35rem',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  gap: '0.8rem',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'var(--transition-smooth)',
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <span
                       style={{
                         background: theme.bg,
                         color: theme.text,
-                        border: `1px solid ${theme.border}`,
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
+                        fontSize: '0.74rem',
                         fontWeight: 700,
-                        textTransform: 'uppercase',
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: 'var(--radius-full)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.3rem',
+                        gap: '0.35rem',
                       }}
                     >
-                      <IconComp size={12} /> {report.category.replace('_', ' ')}
+                      <IconComp size={14} /> {theme.badge}
                     </span>
-
-                    <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>
-                      {report.distance_km !== null ? `${report.distance_km} km away` : ''}
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Clock size={12} /> {new Date(report.created_at).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <h4 style={{ color: '#f8fafc', fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.3rem' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
                     {report.title}
                   </h4>
-
-                  {report.description && (
-                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.4, marginBottom: '0.6rem' }}>
-                      {report.description}
-                    </p>
-                  )}
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', color: '#64748b' }}>
-                    <span>Severity: {isSafeHaven ? 'Sanctuary (Safe)' : `${report.severity_level}/5 Danger`}</span>
-                    <span>•</span>
-                    <span>Radius: ~{report.radius_meters}m</span>
-                  </div>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
+                    {report.description}
+                  </p>
                 </div>
 
                 <div
@@ -350,43 +540,32 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                    paddingTop: '0.6rem',
+                    borderTop: '1px solid var(--border-subtle)',
+                    paddingTop: '0.85rem',
                   }}
                 >
-                  <a
-                    href={`https://maps.google.com/?q=${report.latitude},${report.longitude}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      color: '#38bdf8',
-                      fontSize: '0.8rem',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    <ExternalLink size={12} /> View on Map
-                  </a>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    📍 {report.latitude.toFixed(4)}°N, {report.longitude.toFixed(4)}°E
+                  </span>
 
                   <button
                     onClick={() => handleUpvote(report.id)}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#cbd5e1',
-                      borderRadius: '8px',
-                      padding: '0.35rem 0.7rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
+                      background: '#f8fafc',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--text-primary)',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.4rem',
+                      transition: 'var(--transition-smooth)',
                     }}
                   >
-                    <ThumbsUp size={12} /> {report.upvotes}
+                    <ThumbsUp size={14} style={{ color: '#7c3aed' }} /> Verify ({report.upvotes})
                   </button>
                 </div>
               </div>
@@ -395,174 +574,111 @@ export const CommunitySafetyMap: React.FC<CommunitySafetyMapProps> = ({ token })
         )}
       </div>
 
-      {/* Create Modal */}
+      {/* Report Modal */}
       {isModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(5px)',
-          }}
-        >
-          <div
-            style={{
-              background: '#0e131f',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '16px',
-              padding: '2rem',
-              width: '90%',
-              maxWidth: '520px',
-            }}
-          >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', marginBottom: '1.2rem' }}>
-              Report Safety Hazard or Safe Haven
-            </h3>
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+            <h3 className="modal-title">Pin Zone / Sanctuary</h3>
+            <p className="modal-subtitle">Contribute verified safety telemetry to protect fellow women.</p>
 
-            <form onSubmit={handleCreateReport} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.4rem' }}>
-                  Title / Identifier
-                </label>
+            <form onSubmit={handleSubmitReport} className="auth-form">
+              <div className="form-group">
+                <label className="form-label">Zone Title / Identifier</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Broken streetlights near north pedestrian bridge"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.8rem',
-                    borderRadius: '8px',
-                    background: '#090d16',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#f8fafc',
-                  }}
+                  placeholder="e.g. Unlit Underpass or 24/7 Police Help Desk"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="form-input"
+                  style={{ paddingLeft: '1rem' }}
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.4rem' }}>
-                  Category
-                </label>
-                <select
-                  value={formCategory}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormCategory(val);
-                    if (['safe_haven', 'police_booth', 'hospital'].includes(val)) {
-                      setFormSeverity(1);
-                    } else {
-                      setFormSeverity(3);
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.8rem',
-                    borderRadius: '8px',
-                    background: '#090d16',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#f8fafc',
-                  }}
-                >
-                  <option value="poor_lighting">Poor Lighting</option>
-                  <option value="harassment_hotspot">Harassment Hotspot</option>
-                  <option value="isolated_route">Isolated / Deserted Route</option>
-                  <option value="safe_haven">Safe Haven / 24x7 Store</option>
-                  <option value="police_booth">Police Assistance Booth</option>
-                  <option value="hospital">Hospital / Emergency Medical Care</option>
-                </select>
+              <div className="form-group">
+                <label className="form-label">Detailed Description</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe lighting, foot traffic, emergency phone availability, or safety conditions..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="form-input"
+                  style={{ paddingLeft: '1rem', resize: 'vertical' }}
+                />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.4rem' }}>
-                  Severity Level (1 = Safe Haven, 5 = Severe Danger)
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={formSeverity}
-                  onChange={(e) => setFormSeverity(Number(e.target.value))}
-                  style={{ width: '100%' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
-                  <span>1: Safe Sanctuary</span>
-                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>Level: {formSeverity}</span>
-                  <span>5: Critical Danger</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => {
+                      const cat = e.target.value;
+                      const isSafe = ['safe_haven', 'police_booth', 'hospital'].includes(cat);
+                      setFormData({
+                        ...formData,
+                        category: cat,
+                        severity_level: isSafe ? 1 : 4,
+                      });
+                    }}
+                    className="form-input"
+                    style={{ paddingLeft: '1rem' }}
+                  >
+                    <option value="harassment_hotspot">Harassment Hotspot</option>
+                    <option value="poor_lighting">Poor Lighting</option>
+                    <option value="isolated_route">Isolated Route</option>
+                    <option value="safe_haven">Safe Haven Sanctuary</option>
+                    <option value="police_booth">24/7 Police Help Booth</option>
+                    <option value="hospital">Hospital Emergency Desk</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Perimeter Radius (m)</label>
+                  <input
+                    type="number"
+                    min={50}
+                    max={2000}
+                    value={formData.radius_meters}
+                    onChange={(e) => setFormData({ ...formData, radius_meters: Number(e.target.value) })}
+                    className="form-input"
+                    style={{ paddingLeft: '1rem' }}
+                  />
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.4rem' }}>
-                  Zone Radius: ~{formRadius} meters
-                </label>
-                <input
-                  type="range"
-                  min="50"
-                  max="1000"
-                  step="50"
-                  value={formRadius}
-                  onChange={(e) => setFormRadius(Number(e.target.value))}
-                  style={{ width: '100%' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Latitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={formData.latitude}
+                    onChange={(e) => setFormData({ ...formData, latitude: Number(e.target.value) })}
+                    className="form-input"
+                    style={{ paddingLeft: '1rem' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Longitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={formData.longitude}
+                    onChange={(e) => setFormData({ ...formData, longitude: Number(e.target.value) })}
+                    className="form-input"
+                    style={{ paddingLeft: '1rem' }}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.4rem' }}>
-                  Description (Optional)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Details to alert other women and guardians..."
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.8rem',
-                    borderRadius: '8px',
-                    background: '#090d16',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#f8fafc',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#cbd5e1',
-                    borderRadius: '8px',
-                    padding: '0.6rem 1.2rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{
-                    background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
-                    border: 'none',
-                    color: '#fff',
-                    borderRadius: '8px',
-                    padding: '0.6rem 1.4rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {submitting ? 'Submitting...' : 'Save & Broadcast'}
-                </button>
-              </div>
+              <button type="submit" className="btn-primary" style={{ marginTop: '0.85rem', width: '100%', padding: '0.85rem' }}>
+                Pin Location to Community Safety Map
+              </button>
             </form>
           </div>
         </div>

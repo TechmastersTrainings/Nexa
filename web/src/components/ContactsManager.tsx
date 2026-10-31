@@ -173,25 +173,26 @@ export const ContactsManager: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0.85rem 1rem',
-                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '1rem 1.25rem',
+                background: '#f8fafc',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-sm)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                 <div 
                   style={{
-                    width: 34,
-                    height: 34,
+                    width: 38,
+                    height: 38,
                     borderRadius: '50%',
-                    background: 'rgba(99, 102, 241, 0.15)',
+                    background: 'rgba(124, 58, 237, 0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#a5b4fc',
+                    color: '#7c3aed',
                     fontWeight: 700,
-                    fontSize: '0.9rem',
+                    fontSize: '0.95rem',
                   }}
                 >
                   {c.name[0].toUpperCase()}
@@ -199,15 +200,16 @@ export const ContactsManager: React.FC = () => {
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                       {c.name}
                     </span>
                     <span 
                       style={{ 
-                        fontSize: '0.7rem', 
-                        padding: '0.1rem 0.45rem', 
-                        borderRadius: 4, 
-                        background: 'rgba(255,255,255,0.06)',
+                        fontSize: '0.72rem', 
+                        padding: '0.15rem 0.5rem', 
+                        borderRadius: 6, 
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
                         color: 'var(--text-muted)'
                       }}
                     >
@@ -215,11 +217,11 @@ export const ContactsManager: React.FC = () => {
                     </span>
                     <span 
                       style={{ 
-                        fontSize: '0.7rem', 
-                        padding: '0.1rem 0.45rem', 
-                        borderRadius: 4, 
-                        background: c.priority_order === 1 ? 'rgba(244, 63, 94, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                        color: c.priority_order === 1 ? '#fca5a5' : '#c7d2fe',
+                        fontSize: '0.72rem', 
+                        padding: '0.15rem 0.5rem', 
+                        borderRadius: 6, 
+                        background: c.priority_order === 1 ? '#fee2e2' : '#ede9fe',
+                        color: c.priority_order === 1 ? '#b91c1c' : '#6d28d9',
                         fontWeight: 700,
                       }}
                     >
@@ -228,12 +230,12 @@ export const ContactsManager: React.FC = () => {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.2rem' }}>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Phone size={12} /> {c.phone_number}
+                    <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Phone size={13} style={{ color: '#7c3aed' }} /> {c.phone_number}
                     </span>
                     <span 
                       className={`status-chip ${c.is_verified ? 'chip-emerald' : 'chip-amber'}`}
-                      style={{ fontSize: '0.68rem', padding: '0.1rem 0.45rem' }}
+                      style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem' }}
                     >
                       {c.is_verified ? 'Handshake Verified' : 'Pending Verification'}
                     </span>
@@ -245,18 +247,18 @@ export const ContactsManager: React.FC = () => {
                 {!c.is_verified && (
                   <button
                     className="btn-ghost"
-                    style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fcd34d' }}
+                    style={{ fontSize: '0.78rem', padding: '0.4rem 0.75rem', border: '1px solid #fde68a', background: '#fffbeb', color: '#b45309', fontWeight: 700 }}
                     onClick={() => setVerifyingId(c.id)}
                     title="Enter verification PIN"
                   >
                     <KeyRound size={13} style={{ display: 'inline', marginRight: 4 }} />
-                    Verify
+                    Verify PIN
                   </button>
                 )}
 
                 <button
                   className="btn-ghost"
-                  style={{ color: '#f87171', padding: '0.35rem' }}
+                  style={{ color: '#e11d48', padding: '0.45rem', borderRadius: 'var(--radius-md)' }}
                   onClick={() => handleDeleteContact(c.id)}
                   title="Remove responder"
                 >
@@ -271,36 +273,37 @@ export const ContactsManager: React.FC = () => {
       {/* Verify Code Modal Dialog */}
       {verifyingId && (
         <div className="modal-backdrop" onClick={() => setVerifyingId(null)}>
-          <div className="modal-card" style={{ maxWidth: 380, padding: '1.75rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-card" style={{ maxWidth: 400, padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Confirm Responder Handshake</h3>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>Confirm Responder Handshake</h3>
               <button className="modal-close-btn" onClick={() => setVerifyingId(null)}><X size={16} /></button>
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
               Enter the 6-digit verification PIN assigned to this responder contact.
             </p>
             <input 
               type="text" 
-              placeholder="e.g. 849201" 
+              placeholder="e.g. 123456" 
               value={verifyCode} 
               onChange={(e) => setVerifyCode(e.target.value)}
               maxLength={6}
               style={{
                 width: '100%',
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border-subtle)',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.75rem',
-                color: 'white',
-                fontSize: '1.1rem',
-                letterSpacing: '0.2em',
+                padding: '0.85rem',
+                color: 'var(--text-primary)',
+                fontSize: '1.3rem',
+                letterSpacing: '0.25em',
                 textAlign: 'center',
-                marginBottom: '1rem'
+                marginBottom: '1.25rem',
+                fontWeight: 700,
               }}
             />
             <button 
               className="btn-primary" 
-              style={{ width: '100%' }}
+              style={{ width: '100%', padding: '0.85rem' }}
               onClick={() => handleVerifySubmit(verifyingId)}
               disabled={verifying || verifyCode.trim().length < 4}
             >
