@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nexa_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexa_user
+      POSTGRES_PASSWORD: nexa_secure_password_2026
+      POSTGRES_DB: nexa_safety_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - nexa_pgdata:/var/lib/postgresql/data
+    networks:
+      - nexa_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexa_user -d nexa_safety_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexa_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      PROJECT_NAME: "Nexa Women Safety Intelligence Platform"
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: nexa_user
+      POSTGRES_PASSWORD: nexa_secure_password_2026
+      POSTGRES_DB: nexa_safety_db
+      DATABASE_URL: postgresql+psycopg2://nexa_user:nexa_secure_password_2026@postgres:5432/nexa_safety_db
+      SECRET_KEY: nexa_women_safety_assistant_super_secure_jwt_secret_key_prod_grade_2026_random_string
+      CORS_ORIGINS: "http://localhost:5173,http://localhost:80,http://127.0.0.1:5173"
+      EMERGENCY_SMS_ENABLED: "false"
+      TWILIO_ACCOUNT_SID: ""
+      TWILIO_AUTH_TOKEN: ""
+      TWILIO_FROM_PHONE: ""
+    ports:
+      - "8000:8000"
+    networks:
+      - nexa_network
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: nexa_web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    networks:
+      - nexa_network
+
+volumes:
+  nexa_pgdata:
+    name: nexa_pgdata
+
+networks:
+  nexa_network:
+    name: nexa_network
+    driver: bridge

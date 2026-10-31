@@ -114,6 +114,11 @@ class VoiceTriggerService {
     });
   }
 
+  /// Sets state to listening directly for testing and diagnostic simulations
+  void setListeningForTesting() {
+    _updateState(VoiceEngineState.listening);
+  }
+
   /// Evaluates speech recognized text against safe phrases with fuzzy match and confidence
   bool processRecognizedText(String recognizedText, {double simulatedConfidence = 0.92}) {
     if (_state != VoiceEngineState.listening) return false;
