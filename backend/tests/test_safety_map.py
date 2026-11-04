@@ -64,7 +64,129 @@ def test_geospatial_radius_query(client: TestClient):
         json={
             "title": "MG Road Corridor Safe Haven",
             "category": "safe_haven",
-            "severity_level": 1,
+            "severit
+            
+            
+            
+            No more older messages
+            Conversation Log
+            Is it something the website helps to send the SMS and call local police? -- I think wenedto connect the detailed information of the woman while registration, just name,password, mobile numberwould nt be sounding that 100% of the project what we are developing.
+            This should sound like asafetyness that the platform provides to the woman. Did you understand what I am expecting 
+            Yes, I completely understand what you are expecting. You have hit on the single most crucial aspect of this project: Nexa-AI is not a generic web app; it is a dedicated, life-saving Women's Safety & Emergency Response platform.
+            
+            A standard registration asking only for Name, Email, and Password feels detached and gives no sense of protection or preparedness. If a woman is in distress and triggers an SOS, local police and first responders cannot effectively locate or rescue her without actionable details. The onboarding experience itself must convey "safetyness," trust, and active protection.
+            
+            1. Does the platform send SMS and call local police?
+            Yes. Here is how the emergency dispatch architecture works:
+            
+            Distress SMS to Emergency Contacts & Police:
+            Powered by 
+            alert_service.py
+             via the Twilio SMS Gateway.
+            When an SOS is triggered (via one-tap panic button, voice stress detection, or mobile sensor), the system instantly broadcasts an emergency distress message containing:
+            Live GPS Coordinates with Google Maps link (https://maps.google.com/?q=lat,lng)
+            Victim's Identity & Battery Level
+            Trigger reason (e.g. VOICE_DISTRESS, PANIC_BUTTON, ZONE_BREACH)
+            Calling Local Police & Automated Voice Distress:
+            Automated Voice Dispatch: The backend's Twilio Voice integration places automated emergency calls reciting the distress message and coordinates to registered guardians.
+            Instant Local Police Calling (Web & Mobile): Direct one-tap click-to-dial for national emergency numbers (112 unified emergency, 1091 Women's Helpline, or 100 Police Control Room) directly connected to the local police control room.
+            Police Dispatch Dossier: An emergency snapshot containing the woman’s photo, home address, blood group, primary emergency contacts, and live coordinates can be formatted directly for police dispatchers.
+            2. What Detailed Information Should We Collect During Registration?
+            To instill complete confidence and make the platform 100% focused on her safety, the registration should be structured as a Guided "Safety Shield Onboarding":
+            
+            Dimension	Critical Information Needed	Why It Provides "Safetyness"
+            1. Identity & Verification	Full name, safe email, primary mobile with OTP verification, Age / Date of Birth	Establishes verified identity for official police reporting.
+            2. Primary Emergency Guardian	Guardian Name, Relationship (Mother, Father, Spouse, Friend), Guardian Phone Number	Guarantees she is never left without at least 1 verified responder from minute one.
+            3. Location & Police Jurisdiction	Home / Base Address, City, State, Nearest Police Station / District	Police control rooms (PCRs) route calls by station jurisdiction. Knowing her base location speeds up dispatch.
+            4. Medical & Rescue Identifiers	Blood Group, Emergency Medical Notes / Allergies (optional)	Crucial for first responders and paramedics in emergency rescue scenarios.
+            5. Duress & Covert Protection	Secret Distress Safe-Word (e.g. "Help me Nexa" or custom secret phrase), Police Auto-Dispatch consent	Gives her covert ways to call for help even if an attacker is watching her phone.
+            3. Proposed Plan to Elevate the Platform
+            Upgrade Database Model & Schemas:
+            In 
+            backend/app/models/user.py
+             and 
+            backend/app/schemas/user.py
+            , add:
+            emergency_contact_name, emergency_contact_phone, emergency_contact_relation
+            home_address, city_police_jurisdiction
+            blood_group, medical_notes
+            police_dispatch_consent
+            Multi-Step "Safety Sentinel" Registration Wizard:
+            Update 
+            AuthModal.tsx
+             to offer a sleek, reassuring step-by-step registration with a "Safety Preparedness Score" (e.g., reaching 100% Shielded).
+            Dedicated Emergency Police Quick-Action:
+            Add a prominent "Call Police (112 / 1091)" quick-dial button and emergency police alert trigger right in the dashboard banner and live incident map.
+            Would you like to proceed with this?
+            If you're aligned, we can begin updating the Backend User models/schemas and then build the Safety Onboarding registration flow in the frontend.
+            
+            Proceed
+            We have completely upgraded both the backend and frontend to transform the onboarding and dashboard experience into a true Women Safety & Emergency Response ecosystem.
+            
+            What Was Implemented
+            1. Backend: Women's Emergency Protection Schema & Alerts
+            Database & Alembic Migration (
+            c83df2e94711_add_women_safety_profile_fields_to_users.py
+            ):
+            Primary Guardian Lifeline: emergency_contact_name, emergency_contact_phone, emergency_contact_relation
+            Police Jurisdiction & Sanctuary: home_address, city_police_jurisdiction, preferred_police_helpline (112 default, 1091, 100), police_dispatch_consent
+            Medical & Rescue Telemetry: blood_group, medical_notes, age
+            Models & Schemas (
+            user.py
+            , 
+            schemas/user.py
+            ):
+            Added validation and serialization for all safety fields in UserCreate, UserUpdate, and UserResponse.
+            Automatic Guardian Enrolment (
+            user_repository.py
+            ):
+            When a woman registers her guardian, the system automatically creates a verified TrustedContact in the emergency responder database, ensuring immediate SOS dispatch readiness.
+            Rescue Dossier in SMS / Distress Dispatch (
+            alert_service.py
+            ):
+            Emergency distress SMS and Twilio voice calls now include actionable rescue metadata:
+            EMERGENCY SOS ALERT! Nexa Safety: Priya Sharma triggered an SOS distress signal. Location: https://maps.google.com/?q=... | SafeShield: [Blood: O+, Jurisdiction: Koramangala PS, Guardian: Sunita Sharma (+919988776655)]. Dispatch police/responders immediately!
+            
+            2. Frontend: 3-Step "Safety Sentinel" Onboarding Wizard
+            In 
+            AuthModal.tsx
+            , the generic registration form has been replaced with a guided onboarding wizard with a live Safety Preparedness Score:
+            
+            Step 1: Protected Identity (35% Protected)
+            Full Name, Mobile Phone (Lifeline), Account Email, Age (Rescue ID), and Argon2id Password.
+            Step 2: Guardian Network (70% Protected)
+            Primary Guardian Name, Phone, and Relationship (Mother, Father, Spouse, Sister, Friend, etc.).
+            Explanatory reassurance banner detailing how automated SMS & GPS live tracking work.
+            Step 3: Police Sanctuary, Medical & Duress Shield (100% Shielded 🛡️)
+            Safe Base Address & Nearest Police Station / District.
+            Preferred Police Helpline selection (112 National Emergency, 1091 Women Helpline, 100 Police Control Room).
+            Blood Group & Emergency Medical Notes / Allergies (e.g. Asthmatic / carries inhaler).
+            Secret Duress Safe-Word (defaults to "help me nexa", custom covert phrase for silent SOS).
+            Police Dispatch Consent authorization.
+            3. Dashboard: Quick Police Dialers & Emergency Dossier
+            In 
+            Dashboard.tsx
+             and 
+            IncidentsLiveMap.tsx
+            :
+            
+            Direct Police Quick-Dial Buttons:
+            One-tap click-to-call links for Call 112 (Police) and 1091 Women Helpline.
+            Direct Call Guardian button right in the top banner.
+            One-Click "SOS Dossier" Copy:
+            Copies a structured distress brief (Name, Age, Blood Group, Home Base, Police Jurisdiction, Guardian Contact, GPS link) to clipboard, ready to pass to 112 dispatchers or family over WhatsApp/SMS.
+            Women Safety Profile Cards:
+            Displays 4 dedicated cards: Protected Identity, Primary Guardian Lifeline, Police Sanctuary & Rescue, and Medical & Duress Shield.
+            Interactive Profile Editor:
+            Women can update their guardian, safe address, blood group, or covert safe-word at any time via an "Update Safety Shield" modal.
+            Verification
+            Ran syntax and dependency verification on all backend Python modules: passed.
+            Verified the Alembic migration script syntax: passed.
+            Ran TypeScript build (tsc -b && vite build): completed in 1.45s with 0 errors.
+            Fire up the servers, before create a beautiful homepage then a current page after login
+            I have updated the homepage and dashboard, and I am currently verifying the test suite before firing up the backend and frontend servers. I will update you as soon as the test finishes.
+            
+            y_level": 1,
             "latitude": 12.9750,
             "longitude": 77.6090,
             "radius_meters": 80.0,

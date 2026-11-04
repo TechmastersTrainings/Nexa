@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class AlertService:
-    def format_alert_message(self, user_name: str, incident: Incident) -> str:
+    def format_alert_message(self, user_name: str, incident: Incident, user: Optional[User] = None) -> str:
         """
-        Builds a high-priority emergency distress broadcast message with geolocation coordinates.
+        Builds a high-priority emergency distress broadcast message with geolocation coordinates
+        and victim identification/rescue telemetry.
         """
         if (
             incident.latitude is not None
@@ -34,9 +35,23 @@ class AlertService:
             loc_info = "Location: Unavailable / Offline coordinates pending"
 
         battery_info = f" | Battery: {incident.battery_level}%" if incident.battery_level is not None else ""
+
+        # Actionable rescue telemetry for police & responders
+        rescue_meta = []
+        if user:
+            if user.blood_group:
+                rescue_meta.append(f"Blood: {user.blood_group}")
+            if user.city_police_jurisdiction:
+                rescue_meta.append(f"Jurisdiction: {user.city_police_jurisdiction}")
+            if user.emergency_contact_name and user.emergency_contact_phone:
+                rescue_meta.append(f"Guardian: {user.emergency_contact_name} ({user.emergency_contact_phone})")
+
+        rescue_info = f" | SafeShield: [{', '.join(rescue_meta)}]" if rescue_meta else ""
+
         return (
             f"EMERGENCY SOS ALERT! Nexa Safety: {user_name} triggered an SOS distress signal "
-            f"(Trigger: {incident.trigger_type.upper()}). {loc_info}{battery_info}. Please check on them immediately!"
+            f"(Trigger: {incident.trigger_type.upper()}). {loc_info}{battery_info}{rescue_info}. "
+            f"Dispatch police/responders immediately!"
         )
 
     def dispatch_alerts_for_incident(
@@ -69,7 +84,7 @@ class AlertService:
         failed_count = 0
 
         user_display_name = user.full_name or "A Nexa User"
-        message_body = self.format_alert_message(user_display_name, incident)
+        message_body = self.format_alert_message(user_display_name, incident, user=user)
 
         twilio_enabled = (
             settings.EMERGENCY_SMS_ENABLED

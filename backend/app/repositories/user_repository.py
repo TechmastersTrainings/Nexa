@@ -31,11 +31,40 @@ class UserRepository:
             is_active=True,
             is_phone_verified=False,
             is_email_verified=False,
-            role="user"
+            role="user",
+            # Women Safety & Emergency Protection Profile
+            emergency_contact_name=user_in.emergency_contact_name.strip() if user_in.emergency_contact_name else None,
+            emergency_contact_phone=user_in.emergency_contact_phone.strip() if user_in.emergency_contact_phone else None,
+            emergency_contact_relation=user_in.emergency_contact_relation.strip() if user_in.emergency_contact_relation else None,
+            home_address=user_in.home_address.strip() if user_in.home_address else None,
+            city_police_jurisdiction=user_in.city_police_jurisdiction.strip() if user_in.city_police_jurisdiction else None,
+            preferred_police_helpline=user_in.preferred_police_helpline.strip() if user_in.preferred_police_helpline else "112",
+            blood_group=user_in.blood_group.strip() if user_in.blood_group else None,
+            medical_notes=user_in.medical_notes.strip() if user_in.medical_notes else None,
+            age=user_in.age if user_in.age is not None else None,
+            police_dispatch_consent=user_in.police_dispatch_consent if user_in.police_dispatch_consent is not None else True,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        # Automatically enroll primary emergency guardian into trusted contacts network
+        if user_in.emergency_contact_name and user_in.emergency_contact_phone:
+            try:
+                from app.models.contact import TrustedContact
+                guardian = TrustedContact(
+                    user_id=user.id,
+                    name=user_in.emergency_contact_name.strip(),
+                    phone_number=user_in.emergency_contact_phone.strip(),
+                    relationship=user_in.emergency_contact_relation.strip() if user_in.emergency_contact_relation else "Primary Guardian",
+                    priority_order=1,
+                    is_verified=True,
+                )
+                db.add(guardian)
+                db.commit()
+            except Exception:
+                db.rollback()
+
         return user
 
     @staticmethod
@@ -50,6 +79,28 @@ class UserRepository:
             user.safe_word_phrase = update_data.safe_word_phrase.strip()
         if update_data.emergency_sharing_enabled is not None:
             user.emergency_sharing_enabled = update_data.emergency_sharing_enabled
+
+        # Women Safety & Emergency Protection Updates
+        if update_data.emergency_contact_name is not None:
+            user.emergency_contact_name = update_data.emergency_contact_name.strip()
+        if update_data.emergency_contact_phone is not None:
+            user.emergency_contact_phone = update_data.emergency_contact_phone.strip()
+        if update_data.emergency_contact_relation is not None:
+            user.emergency_contact_relation = update_data.emergency_contact_relation.strip()
+        if update_data.home_address is not None:
+            user.home_address = update_data.home_address.strip()
+        if update_data.city_police_jurisdiction is not None:
+            user.city_police_jurisdiction = update_data.city_police_jurisdiction.strip()
+        if update_data.preferred_police_helpline is not None:
+            user.preferred_police_helpline = update_data.preferred_police_helpline.strip()
+        if update_data.blood_group is not None:
+            user.blood_group = update_data.blood_group.strip()
+        if update_data.medical_notes is not None:
+            user.medical_notes = update_data.medical_notes.strip()
+        if update_data.age is not None:
+            user.age = update_data.age
+        if update_data.police_dispatch_consent is not None:
+            user.police_dispatch_consent = update_data.police_dispatch_consent
 
         db.commit()
         db.refresh(user)

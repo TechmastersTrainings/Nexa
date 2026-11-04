@@ -1,8 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from app.models.base import UUIDMixin, TimestampMixin, utc_now
+from app.models.base import UUIDMixin, TimestampMixin, utc_now, GUID, UUID
 
 
 class UserDevice(Base, UUIDMixin, TimestampMixin):

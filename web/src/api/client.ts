@@ -7,10 +7,52 @@ export interface UserProfile {
   full_name: string;
   phone_number: string;
   is_active: boolean;
-  is_verified: boolean;
-  phone_verified: boolean;
+  is_phone_verified?: boolean;
+  is_email_verified?: boolean;
+  safe_word_phrase?: string;
+  emergency_sharing_enabled?: boolean;
+  
+  // Detailed Women Safety & Emergency Protection Profile
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  emergency_contact_relation?: string | null;
+  
+  home_address?: string | null;
+  city_police_jurisdiction?: string | null;
+  preferred_police_helpline?: string;
+  
+  blood_group?: string | null;
+  medical_notes?: string | null;
+  age?: number | null;
+  police_dispatch_consent?: boolean;
+
   avatar_url?: string | null;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  phone_number: string;
+  safe_word_phrase?: string;
+
+  // Emergency Guardian
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
+
+  // Location & Police Jurisdiction
+  home_address?: string;
+  city_police_jurisdiction?: string;
+  preferred_police_helpline?: string;
+
+  // Medical & Identity
+  blood_group?: string;
+  medical_notes?: string;
+  age?: number;
+  police_dispatch_consent?: boolean;
 }
 
 export interface AuthTokenResponse {
@@ -95,12 +137,7 @@ class ApiService {
     return res.json();
   }
 
-  async register(data: {
-    email: string;
-    password: string;
-    full_name: string;
-    phone_number: string;
-  }): Promise<UserProfile> {
+  async register(data: RegisterPayload): Promise<UserProfile> {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -112,6 +149,25 @@ class ApiService {
       const errorMsg = Array.isArray(json.detail)
         ? json.detail.map((e: any) => e.msg).join(', ')
         : json.detail || 'Registration failed';
+      throw new Error(errorMsg);
+    }
+    return json;
+  }
+
+  async updateProfile(token: string, payload: Partial<RegisterPayload>): Promise<UserProfile> {
+    const res = await fetch(`${API_BASE}/users/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      const errorMsg = Array.isArray(json.detail)
+        ? json.detail.map((e: any) => e.msg).join(', ')
+        : json.detail || 'Failed to update profile';
       throw new Error(errorMsg);
     }
     return json;

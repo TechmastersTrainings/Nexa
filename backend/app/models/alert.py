@@ -1,8 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from app.models.base import UUIDMixin, TimestampMixin
+from app.models.base import UUIDMixin, TimestampMixin, GUID, UUID
 
 
 class IncidentAlertLog(Base, UUIDMixin, TimestampMixin):

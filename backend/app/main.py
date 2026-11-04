@@ -4,6 +4,11 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.database import Base, engine
+import app.models  # ensure models are registered with Base
+
+# Automatically create schema on startup
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

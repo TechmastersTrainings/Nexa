@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api/client';
-import type { UserProfile } from '../api/client';
+import type { UserProfile, RegisterPayload } from '../api/client';
 
 interface AuthContextType {
   token: string | null;
@@ -8,7 +8,8 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; full_name: string; phone_number: string }) => Promise<void>;
+  register: (data: RegisterPayload) => Promise<void>;
+  updateProfile: (data: Partial<RegisterPayload>) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   refreshProfile: () => Promise<void>;
@@ -62,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (data: { email: string; password: string; full_name: string; phone_number: string }) => {
+  const register = async (data: RegisterPayload) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -71,6 +72,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await login(data.email, data.password);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (data: Partial<RegisterPayload>) => {
+    if (!token) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updated = await api.updateProfile(token, data);
+      setUser(updated);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update profile');
       throw err;
     } finally {
       setIsLoading(false);
@@ -93,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error,
         login,
         register,
+        updateProfile,
         logout,
         clearError,
         refreshProfile,

@@ -54,3 +54,8 @@ Desktop.ini
 .coverage
 htmlcov/
 *.log
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3

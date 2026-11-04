@@ -4,11 +4,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
-from app.core.database import Base, get_db
+from app.core.database import Base, get_db, engine
 from app.main import app
 
-# Create a test session maker pointing to the test database or current database with isolated transactions
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+# Create a test session maker pointing to the active resilient database engine
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -22,16 +21,12 @@ def setup_database():
 
 @pytest.fixture(scope="function")
 def db_session():
-    """Provide a transactional database session for each test function with rollback."""
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
+    """Provide a database session for each test function."""
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture(scope="function")

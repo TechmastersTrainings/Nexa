@@ -373,8 +373,56 @@ export const IncidentsLiveMap: React.FC<IncidentsLiveMapProps> = ({ token }) => 
           </div>
         </div>
 
-        {/* SOS Action Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* SOS Action & Police Helplines */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+          <a
+            href="tel:112"
+            id="btn-call-police-112"
+            title="Dial National Emergency Police (112)"
+            style={{
+              background: '#0f172a',
+              color: '#ffffff',
+              border: '1px solid #334155',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 1rem',
+              fontWeight: 700,
+              fontSize: '0.86rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'var(--transition-smooth)'
+            }}
+          >
+            <PhoneCall size={15} style={{ color: '#38bdf8' }} />
+            <span>Call 112 (Police)</span>
+          </a>
+
+          <a
+            href="tel:1091"
+            id="btn-call-helpline-1091"
+            title="Dial Women Safety Helpline (1091)"
+            style={{
+              background: '#ffffff',
+              color: '#e11d48',
+              border: '1.5px solid #f43f5e',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 1rem',
+              fontWeight: 700,
+              fontSize: '0.86rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'var(--transition-smooth)'
+            }}
+          >
+            <PhoneCall size={15} style={{ color: '#e11d48' }} />
+            <span>1091 Women Helpline</span>
+          </a>
+
           <button
             id="btn-trigger-sos-broadcast"
             onClick={handleWebSosTrigger}
@@ -383,9 +431,9 @@ export const IncidentsLiveMap: React.FC<IncidentsLiveMapProps> = ({ token }) => 
               color: '#ffffff',
               border: 'none',
               borderRadius: 'var(--radius-md)',
-              padding: '0.75rem 1.6rem',
+              padding: '0.75rem 1.4rem',
               fontWeight: 800,
-              fontSize: '0.95rem',
+              fontSize: '0.92rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.6rem',
@@ -395,7 +443,7 @@ export const IncidentsLiveMap: React.FC<IncidentsLiveMapProps> = ({ token }) => 
               animation: isSirenPlaying ? 'ripplePulse 0.5s infinite' : 'none',
             }}
           >
-            <ShieldAlert size={20} />
+            <ShieldAlert size={18} />
             <span>TRIGGER EMERGENCY SOS</span>
           </button>
         </div>

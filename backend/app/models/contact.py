@@ -1,8 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship as orm_relationship
 from app.core.database import Base
-from app.models.base import UUIDMixin, TimestampMixin
+from app.models.base import UUIDMixin, TimestampMixin, GUID, UUID
 
 
 class TrustedContact(Base, UUIDMixin, TimestampMixin):
