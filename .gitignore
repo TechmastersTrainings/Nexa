@@ -27,6 +27,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Flutter / Dart / Android
+*.apk
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies

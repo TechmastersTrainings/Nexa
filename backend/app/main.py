@@ -57,7 +57,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 
-@app.get("/", summary="Root Status")
+@app.api_route("/", methods=["GET", "HEAD"], summary="Root Status")
 def root():
     return {
         "service": settings.PROJECT_NAME,
@@ -66,3 +66,8 @@ def root():
         "docs": "/docs",
         "api_v1": settings.API_V1_PREFIX
     }
+
+
+@app.api_route("/health", methods=["GET", "HEAD"], summary="Health Check")
+def health():
+    return {"status": "healthy", "service": settings.PROJECT_NAME}
