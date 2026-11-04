@@ -25,10 +25,12 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: List[str] = [
+        "*",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://10.0.2.2:8000",
+        "https://nexa-safety-api.vercel.app",
     ]
 
     # Emergency Services (Phase 5)
@@ -36,6 +38,16 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_FROM_PHONE: str = ""
     EMERGENCY_SMS_ENABLED: bool = False
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_database_url(cls, v: str) -> str:
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif v.startswith("postgresql://") and not v.startswith("postgresql+psycopg2://"):
+                return v.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return v
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
