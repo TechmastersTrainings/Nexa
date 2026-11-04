@@ -168,29 +168,28 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
       </div>
 
       {/* 2. MAIN HERO SECTION */}
-      <section className="hero-section" style={{ padding: '2rem 1rem 3rem' }}>
-        <div className="hero-pill" style={{ margin: '0 auto 1.5rem auto' }}>
+      <section className="hero-section">
+        <div className="hero-pill">
           <Sparkles size={14} className="text-indigo" />
           <span>RESEARCH-BACKED WOMEN SAFETY SENTINEL • 24/7 PROTECTION</span>
         </div>
 
-        <h1 className="hero-heading" style={{ marginBottom: '1.25rem' }}>
+        <h1 className="hero-heading">
           Fearless Independence. <br />
           <span className="text-gradient">Protected by Intelligent AI.</span>
         </h1>
 
-        <p className="hero-description" style={{ margin: '0 auto 2.25rem auto' }}>
+        <p className="hero-description">
           Nexa AI empowers every woman with an active, unbroken security shield. Built with 
           <strong> native offline acoustic distress recognition</strong>, automated <strong>112 police emergency coordination</strong>, 
           instant <strong>guardian SMS dispatch</strong> with live GPS coordinates, and verified safe sanctuaries when seconds count.
         </p>
 
-        <div className="hero-actions" style={{ marginBottom: '2.5rem' }}>
+        <div className="hero-actions">
           <button 
             id="btn-hero-register"
             className="btn-hero-primary" 
             onClick={() => onOpenAuth('register')}
-            style={{ padding: '0.95rem 2rem', fontSize: '1rem', fontWeight: 800 }}
           >
             <Shield size={20} />
             <span>Activate 100% Protected Shield</span>
@@ -201,7 +200,6 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
             id="btn-hero-login"
             className="btn-hero-secondary" 
             onClick={() => onOpenAuth('login')}
-            style={{ padding: '0.95rem 1.8rem', fontSize: '1rem' }}
           >
             <Lock size={18} />
             <span>Sign In to Guardian Portal</span>
@@ -210,11 +208,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
 
         {/* Real-World Safety Metrics Bar */}
         <div 
+          className="hero-metrics-grid"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1rem',
             maxWidth: '920px',
+            width: '100%',
+            boxSizing: 'border-box',
             margin: '0 auto',
             textAlign: 'left'
           }}
