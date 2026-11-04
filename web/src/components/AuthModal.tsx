@@ -136,6 +136,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
 
     setSubmitting(true);
     try {
+      if (guardianPhone.trim()) {
+        localStorage.setItem('nexa_registered_guardian_phone', guardianPhone.trim());
+      }
+      if (guardianName.trim()) {
+        localStorage.setItem('nexa_registered_guardian_name', guardianName.trim());
+      }
       await register({
         email: email.trim(),
         password,

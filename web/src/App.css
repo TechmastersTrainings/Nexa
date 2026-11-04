@@ -1194,4 +1194,53 @@ html, body {
     padding: 0.5rem 0.4rem;
     font-size: 0.8rem;
   }
+
+  /* Floating Voice Sentinel on Mobile */
+  .floating-voice-sentinel {
+    bottom: 12px !important;
+    right: 12px !important;
+    left: 12px !important;
+    align-items: stretch !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .floating-voice-sentinel > div {
+    justify-content: space-between !important;
+  }
+
+  .emergency-lifeline-bar {
+    padding: 0.75rem 0.85rem !important;
+  }
+
+  .helpline-quick-btns {
+    width: 100% !important;
+  }
+
+  .helpline-quick-btns a {
+    flex: 1 1 calc(50% - 0.4rem) !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0.55rem 0.4rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .hero-pill {
+    white-space: normal !important;
+    text-align: center !important;
+    font-size: 0.72rem !important;
+    padding: 0.4rem 0.8rem !important;
+  }
+
+  .hero-actions {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .btn-hero-primary, .btn-hero-secondary {
+    width: 100% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    padding: 0.85rem 1rem !important;
+    font-size: 0.95rem !important;
+  }
 }

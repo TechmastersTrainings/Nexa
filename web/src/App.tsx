@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { LandingHero } from './components/LandingHero';
 import { Dashboard } from './components/Dashboard';
 import { AuthModal } from './components/AuthModal';
+import { GlobalVoiceGuardian } from './components/GlobalVoiceGuardian';
 import { Loader2 } from 'lucide-react';
 import './App.css';
 
@@ -39,6 +40,9 @@ const AppContent: React.FC = () => {
         initialMode={authModalMode}
         onClose={() => setAuthModalOpen(false)}
       />
+
+      {/* Global 24/7 Voice Sentinel - Available on Any Screen */}
+      <GlobalVoiceGuardian />
     </div>
   );
 };

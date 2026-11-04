@@ -53,31 +53,34 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
   };
 
   return (
-    <div className="landing-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
+    <div className="landing-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       
       {/* 1. TOP EMERGENCY LIFELINE QUICK DIALER BAR */}
       <div 
+        className="emergency-lifeline-bar"
         style={{
           background: 'linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%)',
           borderRadius: 'var(--radius-lg)',
-          padding: '0.9rem 1.5rem',
+          padding: '0.85rem 1.25rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.85rem',
           border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: 'var(--shadow-md)'
+          boxShadow: 'var(--shadow-md)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <span className="status-dot online" style={{ background: '#f43f5e', boxShadow: '0 0 10px #f43f5e' }}></span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             National 24/7 Emergency Helplines (Instant Access)
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div className="helpline-quick-btns" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', width: 'auto' }}>
           <a
             href="tel:112"
             title="Dial 112 National Police Emergency"
@@ -260,12 +263,15 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
 
       {/* 3. INTERACTIVE SOS RESPONSE SIMULATOR */}
       <section 
+        className="simulator-section"
         style={{
           background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
           borderRadius: 'var(--radius-xl)',
-          padding: '2.75rem 2rem',
+          padding: 'clamp(1.25rem, 4vw, 2.5rem) clamp(0.75rem, 3vw, 1.5rem)',
           border: '1px solid #cbd5e1',
-          boxShadow: 'var(--shadow-lg)'
+          boxShadow: 'var(--shadow-lg)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 2rem auto' }}>
@@ -273,7 +279,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
             <Radio size={14} className="text-rose" />
             <span>LIVE INTERACTIVE SIMULATION</span>
           </div>
-          <h2 style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 4.5vw, 1.9rem)', fontWeight: 800, color: 'var(--text-primary)' }}>
             Experience The 3-Second Rescue Protocol
           </h2>
           <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
@@ -282,18 +288,18 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
         </div>
 
         {/* Trigger Selector Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2rem' }}>
+        <div className="sim-trigger-btn-group" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '2rem' }}>
           <button
             type="button"
             onClick={() => { setSimTrigger('voice'); setSimStep(0); }}
             style={{
-              padding: '0.7rem 1.25rem',
+              padding: '0.65rem 1rem',
               borderRadius: 'var(--radius-md)',
               border: simTrigger === 'voice' ? '2px solid #7c3aed' : '1px solid #cbd5e1',
               background: simTrigger === 'voice' ? '#ede9fe' : '#ffffff',
               color: simTrigger === 'voice' ? '#6d28d9' : 'var(--text-secondary)',
               fontWeight: 700,
-              fontSize: '0.88rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -308,13 +314,13 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
             type="button"
             onClick={() => { setSimTrigger('scream'); setSimStep(0); }}
             style={{
-              padding: '0.7rem 1.25rem',
+              padding: '0.65rem 1rem',
               borderRadius: 'var(--radius-md)',
               border: simTrigger === 'scream' ? '2px solid #e11d48' : '1px solid #cbd5e1',
               background: simTrigger === 'scream' ? '#ffe4e6' : '#ffffff',
               color: simTrigger === 'scream' ? '#be123c' : 'var(--text-secondary)',
               fontWeight: 700,
-              fontSize: '0.88rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -329,13 +335,13 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
             type="button"
             onClick={() => { setSimTrigger('panic'); setSimStep(0); }}
             style={{
-              padding: '0.7rem 1.25rem',
+              padding: '0.65rem 1rem',
               borderRadius: 'var(--radius-md)',
               border: simTrigger === 'panic' ? '2px solid #0284c7' : '1px solid #cbd5e1',
               background: simTrigger === 'panic' ? '#e0f2fe' : '#ffffff',
               color: simTrigger === 'panic' ? '#0369a1' : 'var(--text-secondary)',
               fontWeight: 700,
-              fontSize: '0.88rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -351,19 +357,21 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
         <div 
           style={{
             maxWidth: '820px',
+            width: '100%',
+            boxSizing: 'border-box',
             margin: '0 auto',
             background: '#0f172a',
             color: '#f8fafc',
             borderRadius: 'var(--radius-lg)',
-            padding: '1.75rem',
+            padding: 'clamp(1rem, 3vw, 1.75rem)',
             border: '1px solid #334155',
             boxShadow: 'var(--shadow-lg)'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: simRunning ? '#f43f5e' : '#10b981' }}></div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.04em' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: simRunning ? '#f43f5e' : '#10b981', flexShrink: 0 }}></div>
+              <span style={{ fontSize: 'clamp(0.72rem, 2.5vw, 0.85rem)', fontWeight: 700, letterSpacing: '0.04em' }}>
                 NEXA EMERGENCY TELEMETRY TERMINAL (SIMULATOR)
               </span>
             </div>
@@ -376,7 +384,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.5rem 1.15rem',
+                padding: '0.55rem 1.15rem',
                 fontSize: '0.82rem',
                 fontWeight: 800,
                 cursor: simRunning ? 'not-allowed' : 'pointer',
@@ -471,7 +479,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+        <div className="helpline-directory-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.25rem', width: '100%', boxSizing: 'border-box' }}>
           {[
             {
               num: '112',
@@ -599,20 +607,22 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
         style={{
           background: 'linear-gradient(135deg, rgba(237, 233, 254, 0.4) 0%, rgba(254, 242, 242, 0.4) 100%)',
           borderRadius: 'var(--radius-xl)',
-          padding: '2.5rem 2rem',
-          border: '1px solid rgba(196, 181, 253, 0.4)'
+          padding: 'clamp(1.25rem, 4vw, 2.5rem) clamp(0.75rem, 3vw, 2rem)',
+          border: '1px solid rgba(196, 181, 253, 0.4)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         <div style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto 2rem auto' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Empowerment & Preparation
           </span>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.3rem' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.3rem' }}>
             4 Golden Rules of Modern Personal Safety
           </h2>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1.25rem', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0' }}>
             <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, marginBottom: '0.8rem' }}>1</span>
             <h4 style={{ fontSize: '0.98rem', fontWeight: 700, marginBottom: '0.4rem', color: 'var(--text-primary)' }}>Pre-Enrolled Guardians</h4>
@@ -669,7 +679,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+        <div className="helpline-directory-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.25rem', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <CheckCircle2 size={18} className="text-emerald" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
@@ -707,16 +717,18 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
         style={{
           background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f43f5e 100%)',
           borderRadius: 'var(--radius-xl)',
-          padding: '3rem 2rem',
+          padding: 'clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem)',
           textAlign: 'center',
           color: '#ffffff',
-          boxShadow: 'var(--shadow-glow-indigo)'
+          boxShadow: 'var(--shadow-glow-indigo)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.8rem' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 4.5vw, 2rem)', fontWeight: 800, marginBottom: '0.8rem' }}>
           Your Life. Your Freedom. 100% Protected.
         </h2>
-        <p style={{ fontSize: '1.05rem', maxWidth: '640px', margin: '0 auto 2rem auto', opacity: 0.95, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'clamp(0.92rem, 2.5vw, 1.05rem)', maxWidth: '640px', margin: '0 auto 2rem auto', opacity: 0.95, lineHeight: 1.6 }}>
           Join thousands of women who navigate with complete confidence. Set up your guardian lifeline and emergency police dossier in under 2 minutes.
         </p>
 
@@ -728,15 +740,18 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
             color: '#7c3aed',
             border: 'none',
             borderRadius: 'var(--radius-full)',
-            padding: '1rem 2.5rem',
-            fontSize: '1.05rem',
+            padding: '0.9rem 1.8rem',
+            fontSize: '1rem',
             fontWeight: 800,
             cursor: 'pointer',
             boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
             transition: 'var(--transition-smooth)',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.6rem'
+            justifyContent: 'center',
+            gap: '0.6rem',
+            maxWidth: '100%',
+            whiteSpace: 'normal'
           }}
         >
           <Shield size={20} />

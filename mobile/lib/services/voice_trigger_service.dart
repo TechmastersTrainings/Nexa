@@ -36,6 +36,7 @@ class VoiceTriggerService {
 
   // Active safe words and trigger phrase variants
   final List<String> _safePhrases = [
+    'nexa help',
     'help',
     'help me',
     'bachao',

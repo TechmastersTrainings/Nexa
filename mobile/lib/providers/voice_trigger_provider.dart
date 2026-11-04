@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/voice_trigger_service.dart';
 
 class VoiceTriggerProvider extends ChangeNotifier {
@@ -10,6 +12,7 @@ class VoiceTriggerProvider extends ChangeNotifier {
   VoiceEngineState _state = VoiceEngineState.stopped;
   TriggerEvent? _lastTrigger;
   String? _errorMessage;
+  String? _activeGuardianPhone;
 
   VoiceEngineState get state => _state;
   bool get isListening => _state == VoiceEngineState.listening;
@@ -19,6 +22,7 @@ class VoiceTriggerProvider extends ChangeNotifier {
   List<String> get safePhrases => _service.safePhrases;
   TriggerEvent? get lastTrigger => _lastTrigger;
   String? get errorMessage => _errorMessage;
+  String? get activeGuardianPhone => _activeGuardianPhone;
 
   VoiceTriggerProvider() {
     _stateSub = _service.onStateChanged.listen((newState) {
@@ -31,9 +35,20 @@ class VoiceTriggerProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _triggerSub = _service.onTrigger.listen((event) {
+    _triggerSub = _service.onTrigger.listen((event) async {
       _lastTrigger = event;
       notifyListeners();
+
+      // Automatically trigger phone call to guardian when distress keyword is recognized
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final phone = prefs.getString('nexa_emergency_contact_phone') ?? '9916002783';
+        _activeGuardianPhone = phone;
+        final Uri telUri = Uri.parse('tel:$phone');
+        if (await canLaunchUrl(telUri)) {
+          await launchUrl(telUri, mode: LaunchMode.externalApplication);
+        }
+      } catch (_) {}
     });
   }
 
