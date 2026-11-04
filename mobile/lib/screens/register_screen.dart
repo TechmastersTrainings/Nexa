@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/server_settings_dialog.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -71,6 +72,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Navigator.of(context).pop();
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dns_outlined, color: Color(0xFF94A3B8)),
+            tooltip: 'Server Connection',
+            onPressed: () => ServerSettingsDialog.show(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(

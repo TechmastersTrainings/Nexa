@@ -95,10 +95,10 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  final String baseUrl;
+  final String? _customBaseUrl;
+  String get baseUrl => _customBaseUrl ?? AppConstants.defaultApiBase;
 
-  ApiService({String? customBaseUrl}) 
-      : baseUrl = customBaseUrl ?? AppConstants.defaultApiBase;
+  ApiService({String? customBaseUrl}) : _customBaseUrl = customBaseUrl;
 
   Future<bool> checkHealth() async {
     try {

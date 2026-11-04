@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/voice_trigger_provider.dart';
 import 'providers/incident_provider.dart';
+import 'core/constants.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConstants.init();
   runApp(const NexaSafetyApp());
 }
 
