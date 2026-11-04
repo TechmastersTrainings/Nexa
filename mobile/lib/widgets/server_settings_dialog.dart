@@ -259,8 +259,8 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
                     ? const Color(0xFF10B981).withOpacity(0.12)
                     : const Color(0xFFEF4444).withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.parse(
-                  _isSuccess ? '1px solid #10b981' : '1px solid #ef4444',
+                border: Border.all(
+                  color: _isSuccess ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                 ),
               ),
               child: Row(
