@@ -43,10 +43,23 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_database_url(cls, v: str) -> str:
         if isinstance(v, str):
-            if v.startswith("postgres://"):
-                return v.replace("postgres://", "postgresql+psycopg2://", 1)
+            v = v.strip()
+            # MySQL / Aiven URL handling
+            if v.startswith("mysql://"):
+                v = "mysql+pymysql://" + v[len("mysql://"):]
+            elif v.startswith("mysql+aiomysql://"):
+                v = "mysql+pymysql://" + v[len("mysql+aiomysql://"):]
+            # PostgreSQL URL handling
+            elif v.startswith("postgres://"):
+                v = "postgresql+psycopg2://" + v[len("postgres://"):]
             elif v.startswith("postgresql://") and not v.startswith("postgresql+psycopg2://"):
-                return v.replace("postgresql://", "postgresql+psycopg2://", 1)
+                v = "postgresql+psycopg2://" + v[len("postgresql://"):]
+
+            # If mysql+pymysql, clean invalid PyMySQL query parameters like ssl-mode
+            if "mysql+pymysql://" in v:
+                import re
+                v = re.sub(r'([?&])ssl-mode=[^&]*(&|$)', r'\1', v)
+                v = re.sub(r'[?&]$', '', v)
         return v
 
     @field_validator("CORS_ORIGINS", mode="before")

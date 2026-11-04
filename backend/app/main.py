@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -7,8 +8,14 @@ from app.core.config import settings
 from app.core.database import Base, engine
 import app.models  # ensure models are registered with Base
 
-# Automatically create schema on startup
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger(__name__)
+
+# Automatically create schema on startup with resilient error boundary
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database schema verified and created successfully.")
+except Exception as e:
+    logger.error(f"Database schema initialization warning: {e}", exc_info=True)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
