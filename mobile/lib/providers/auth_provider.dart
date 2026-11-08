@@ -88,17 +88,47 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     required String fullName,
     required String phoneNumber,
+    int? age,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? emergencyContactRelation,
+    String? homeAddress,
+    String? cityPoliceJurisdiction,
+    String? preferredPoliceHelpline,
+    String? bloodGroup,
+    String? medicalNotes,
+    String? safeWordPhrase,
+    bool? policeDispatchConsent,
   }) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      if (emergencyContactPhone != null && emergencyContactPhone.trim().isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('nexa_registered_guardian_phone', emergencyContactPhone.trim());
+        if (emergencyContactName != null && emergencyContactName.trim().isNotEmpty) {
+          await prefs.setString('nexa_registered_guardian_name', emergencyContactName.trim());
+        }
+      }
+
       await _apiService.register(
         email: email,
         password: password,
         fullName: fullName,
         phoneNumber: phoneNumber,
+        age: age,
+        emergencyContactName: emergencyContactName,
+        emergencyContactPhone: emergencyContactPhone,
+        emergencyContactRelation: emergencyContactRelation,
+        homeAddress: homeAddress,
+        cityPoliceJurisdiction: cityPoliceJurisdiction,
+        preferredPoliceHelpline: preferredPoliceHelpline,
+        bloodGroup: bloodGroup,
+        medicalNotes: medicalNotes,
+        safeWordPhrase: safeWordPhrase,
+        policeDispatchConsent: policeDispatchConsent,
       );
 
       // Auto login upon successful registration

@@ -51,13 +51,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final isLoading = auth.status == AuthStatus.loading;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF07090E),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.dns_outlined, color: Color(0xFF94A3B8)),
+            icon: const Icon(Icons.dns_outlined, color: Color(0xFF64748B)),
             tooltip: 'Server Connection',
             onPressed: () => ServerSettingsDialog.show(context),
           ),
@@ -66,217 +66,327 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Shield Logo
+                  // App Shield Logo matching website
                   Center(
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      width: 58,
+                      height: 58,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
+                        color: const Color(0xFFEDE9FE),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFDDD6FE)),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            color: const Color(0xFF7C3AED).withValues(alpha: 0.15),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: const Icon(
-                        Icons.shield_outlined,
-                        color: Colors.white,
-                        size: 40,
+                        Icons.shield,
+                        color: Color(0xFF7C3AED),
+                        size: 32,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
                   // Brand Title
                   const Text(
-                    'NEXA AI SAFETY',
+                    'Access Guardian Portal',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                      color: Colors.white,
+                      letterSpacing: -0.4,
+                      color: Color(0xFF0F172A),
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Intelligent Autonomous Women Safety Platform',
+                    'Sign in to access real-time emergency telemetry, active responders, and AI stress monitoring.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF94A3B8),
+                      fontSize: 12.5,
+                      color: Color(0xFF64748B),
+                      height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 22),
+
+                  // Mode Switcher Tabs
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(9),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              'Sign In',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF7C3AED),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              auth.clearError();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(9),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'Create Protected Profile',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
                   // Error banner if any
                   if (auth.errorMessage != null) ...[
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.35)),
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFECACA)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Color(0xFFFCA5A5), size: 20),
-                          const SizedBox(width: 10),
+                          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 18),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               auth.errorMessage!,
-                              style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 13),
+                              style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 12.5),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                   ],
 
                   // Email Field
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                    decoration: InputDecoration(
-                      labelText: 'Email Address',
-                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF6366F1)),
-                      filled: true,
-                      fillColor: const Color(0xFF0E131F),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF1E293B)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF1E293B)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 6.0),
+                    child: Text(
+                      'Email Address',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
                       ),
                     ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) return 'Email is required';
-                      if (!val.contains('@')) return 'Enter a valid email';
-                      return null;
-                    },
                   ),
-                  const SizedBox(height: 18),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+                      decoration: const InputDecoration(
+                        hintText: 'name@example.com',
+                        hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                        prefixIcon: Icon(Icons.mail_outline, color: Color(0xFF7C3AED), size: 19),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Email is required';
+                        if (!val.contains('@')) return 'Enter a valid email address';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 14),
 
                   // Password Field
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6366F1)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFF0E131F),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF1E293B)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF1E293B)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 6.0),
+                    child: Text(
+                      'Password',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
                       ),
                     ),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return 'Password is required';
-                      return null;
-                    },
                   ),
-                  const SizedBox(height: 28),
-
-                  // Sign In Button
-                  ElevatedButton(
-                    onPressed: isLoading ? null : _submitLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 4,
-                      shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
                     ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Sign In to Guardian App',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
+                    child: TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+                      decoration: InputDecoration(
+                        hintText: '••••••••••••',
+                        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                        prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF7C3AED), size: 19),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: const Color(0xFF94A3B8),
+                            size: 20,
                           ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Link to Register
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account?",
-                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          auth.clearError();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                          );
-                        },
-                        child: const Text(
-                          'Register Now',
-                          style: TextStyle(
-                            color: Color(0xFFA5B4FC),
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                      validator: (val) {
+                        if (val == null || val.isEmpty) return 'Password is required';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+
+                  // Submit Button
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF7C3AED).withValues(alpha: 0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: isLoading ? null : _submitLogin,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (isLoading) ...[
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                ),
+                                const SizedBox(width: 10),
+                              ],
+                              const Text(
+                                'Sign In to Guardian Portal',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              if (!isLoading) ...[
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward, size: 16, color: Colors.white),
+                              ],
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Switch to Register link
+                  Center(
+                    child: InkWell(
+                      onTap: () {
+                        auth.clearError();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        );
+                      },
+                      child: const Text.rich(
+                        TextSpan(
+                          text: "Don't have an account yet? ",
+                          style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                          children: [
+                            TextSpan(
+                              text: 'Activate Safety Shield',
+                              style: TextStyle(
+                                color: Color(0xFF7C3AED),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

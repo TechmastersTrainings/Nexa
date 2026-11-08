@@ -27,17 +27,20 @@ class NexaSafetyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Nexa AI Safety',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData.dark().copyWith(
-          scaffoldBackgroundColor: const Color(0xFF07090E),
-          colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF6366F1),
-            secondary: Color(0xFFA855F7),
-            surface: Color(0xFF0E131F),
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF7C3AED),
+            secondary: Color(0xFF4F46E5),
+            surface: Colors.white,
             error: Color(0xFFEF4444),
           ),
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF0D121D),
+            backgroundColor: Color(0xFFF8FAFC),
             elevation: 0,
+            iconTheme: IconThemeData(color: Color(0xFF0F172A)),
           ),
         ),
         home: const AuthGate(),
@@ -55,7 +58,7 @@ class AuthGate extends StatelessWidget {
 
     if (auth.status == AuthStatus.initial || (auth.status == AuthStatus.loading && auth.user == null)) {
       return const Scaffold(
-        backgroundColor: Color(0xFF07090E),
+        backgroundColor: Color(0xFFF8FAFC),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -64,14 +67,14 @@ class AuthGate extends StatelessWidget {
                 width: 36,
                 height: 36,
                 child: CircularProgressIndicator(
-                  color: Color(0xFF6366F1),
+                  color: Color(0xFF7C3AED),
                   strokeWidth: 3,
                 ),
               ),
               SizedBox(height: 16),
               Text(
                 'Starting Nexa Security Engine...',
-                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ],
           ),

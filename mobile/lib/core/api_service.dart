@@ -148,17 +148,61 @@ class ApiService {
     required String password,
     required String fullName,
     required String phoneNumber,
+    int? age,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? emergencyContactRelation,
+    String? homeAddress,
+    String? cityPoliceJurisdiction,
+    String? preferredPoliceHelpline,
+    String? bloodGroup,
+    String? medicalNotes,
+    String? safeWordPhrase,
+    bool? policeDispatchConsent,
   }) async {
     try {
+      final Map<String, dynamic> payload = {
+        'email': email.trim(),
+        'password': password,
+        'full_name': fullName.trim(),
+        'phone_number': phoneNumber.trim(),
+      };
+      if (age != null) payload['age'] = age;
+      if (emergencyContactName != null && emergencyContactName.trim().isNotEmpty) {
+        payload['emergency_contact_name'] = emergencyContactName.trim();
+      }
+      if (emergencyContactPhone != null && emergencyContactPhone.trim().isNotEmpty) {
+        payload['emergency_contact_phone'] = emergencyContactPhone.trim();
+      }
+      if (emergencyContactRelation != null && emergencyContactRelation.trim().isNotEmpty) {
+        payload['emergency_contact_relation'] = emergencyContactRelation.trim();
+      }
+      if (homeAddress != null && homeAddress.trim().isNotEmpty) {
+        payload['home_address'] = homeAddress.trim();
+      }
+      if (cityPoliceJurisdiction != null && cityPoliceJurisdiction.trim().isNotEmpty) {
+        payload['city_police_jurisdiction'] = cityPoliceJurisdiction.trim();
+      }
+      if (preferredPoliceHelpline != null && preferredPoliceHelpline.trim().isNotEmpty) {
+        payload['preferred_police_helpline'] = preferredPoliceHelpline.trim();
+      }
+      if (bloodGroup != null && bloodGroup.trim().isNotEmpty) {
+        payload['blood_group'] = bloodGroup.trim();
+      }
+      if (medicalNotes != null && medicalNotes.trim().isNotEmpty) {
+        payload['medical_notes'] = medicalNotes.trim();
+      }
+      if (safeWordPhrase != null && safeWordPhrase.trim().isNotEmpty) {
+        payload['safe_word_phrase'] = safeWordPhrase.trim();
+      }
+      if (policeDispatchConsent != null) {
+        payload['police_dispatch_consent'] = policeDispatchConsent;
+      }
+
       final res = await http.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email.trim(),
-          'password': password,
-          'full_name': fullName.trim(),
-          'phone_number': phoneNumber.trim(),
-        }),
+        body: jsonEncode(payload),
       ).timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(res.body);
