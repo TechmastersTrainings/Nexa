@@ -113,6 +113,39 @@ class ApiService {
     }
   }
 
+  dynamic _parseResponse(http.Response res, int expectedStatus, String defaultErrorMsg) {
+    if (res.statusCode == expectedStatus) {
+      if (res.body.trim().isEmpty) return null;
+      try {
+        return jsonDecode(res.body);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    String errorMsg = defaultErrorMsg;
+    try {
+      final parsed = jsonDecode(res.body);
+      if (parsed is Map) {
+        final detail = parsed['detail'];
+        if (detail is String) {
+          errorMsg = detail;
+        } else if (detail is List) {
+          errorMsg = detail.map((e) => e['msg'] ?? '').where((s) => s.isNotEmpty).join(', ');
+        }
+      }
+    } catch (_) {
+      if (res.statusCode == 404) {
+        errorMsg = 'Server endpoint not found (HTTP 404). Please check your Render URL in the top-right Server Connection settings.';
+      } else if (res.statusCode >= 500) {
+        errorMsg = 'Cloud server is warming up or temporarily unavailable (HTTP ${res.statusCode}). Please try again in a few moments.';
+      } else if (res.body.trim().isNotEmpty) {
+        errorMsg = 'Server response (${res.statusCode}): ${res.body.trim()}';
+      }
+    }
+    throw ApiException(errorMsg, res.statusCode);
+  }
+
   Future<String> login(String email, String password) async {
     try {
       final res = await http.post(
@@ -124,15 +157,8 @@ class ApiService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      final data = jsonDecode(res.body);
-
-      if (res.statusCode == 200) {
-        return data['access_token'] as String;
-      } else {
-        final detail = data['detail'];
-        final msg = detail is String ? detail : 'Invalid email or password.';
-        throw ApiException(msg, res.statusCode);
-      }
+      final data = _parseResponse(res, 200, 'Invalid email or password.');
+      return data['access_token'] as String;
     } on SocketException {
       throw ApiException('Cannot reach Nexa backend server. Verify network connection.');
     } on http.ClientException {
@@ -205,20 +231,8 @@ class ApiService {
         body: jsonEncode(payload),
       ).timeout(const Duration(seconds: 10));
 
-      final data = jsonDecode(res.body);
-
-      if (res.statusCode == 201) {
-        return UserProfile.fromJson(data);
-      } else {
-        final detail = data['detail'];
-        String msg = 'Registration failed.';
-        if (detail is String) {
-          msg = detail;
-        } else if (detail is List) {
-          msg = detail.map((e) => e['msg'] ?? '').where((s) => s.isNotEmpty).join(', ');
-        }
-        throw ApiException(msg, res.statusCode);
-      }
+      final data = _parseResponse(res, 201, 'Registration failed.');
+      return UserProfile.fromJson(data);
     } on SocketException {
       throw ApiException('Cannot reach Nexa backend server. Verify network connection.');
     } catch (e) {
@@ -236,14 +250,8 @@ class ApiService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      final data = jsonDecode(res.body);
-
-      if (res.statusCode == 200) {
-        return UserProfile.fromJson(data);
-      } else {
-        final detail = data['detail'];
-        throw ApiException(detail is String ? detail : 'Failed to retrieve profile.', res.statusCode);
-      }
+      final data = _parseResponse(res, 200, 'Failed to retrieve profile.');
+      return UserProfile.fromJson(data);
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Profile fetch failed: ${e.toString()}');
@@ -258,13 +266,11 @@ class ApiService {
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 10));
 
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
+      final data = _parseResponse(res, 200, 'Failed to fetch contacts.');
+      if (data is List) {
         return data.map((e) => TrustedContact.fromJson(e)).toList();
-      } else {
-        final detail = jsonDecode(res.body)['detail'];
-        throw ApiException(detail is String ? detail : 'Failed to fetch contacts.', res.statusCode);
       }
+      return [];
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Contacts retrieval failed: ${e.toString()}');
@@ -293,13 +299,8 @@ class ApiService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      final data = jsonDecode(res.body);
-      if (res.statusCode == 201) {
-        return TrustedContact.fromJson(data);
-      } else {
-        final detail = data['detail'];
-        throw ApiException(detail is String ? detail : 'Failed to add contact.', res.statusCode);
-      }
+      final data = _parseResponse(res, 201, 'Failed to add contact.');
+      return TrustedContact.fromJson(data);
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Add contact failed: ${e.toString()}');
@@ -313,10 +314,7 @@ class ApiService {
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 10));
 
-      if (res.statusCode != 204) {
-        final detail = jsonDecode(res.body)['detail'];
-        throw ApiException(detail is String ? detail : 'Failed to delete contact.', res.statusCode);
-      }
+      _parseResponse(res, 204, 'Failed to delete contact.');
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Delete contact failed: ${e.toString()}');
