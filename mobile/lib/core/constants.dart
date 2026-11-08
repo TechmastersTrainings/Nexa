@@ -12,7 +12,7 @@ class AppConstants {
 
   // Default Endpoints
   static const String defaultRenderUrl = 'https://nexa-safety-api.onrender.com/api/v1';
-  static const String defaultLocalWifiUrl = 'http://192.168.1.137:8000/api/v1';
+  static const String defaultLocalWifiUrl = 'http://192.168.1.10:8000/api/v1';
 
   static String? _cachedApiBase;
 
