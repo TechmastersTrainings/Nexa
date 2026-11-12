@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/voice_trigger_provider.dart';
 import '../providers/incident_provider.dart';
 import '../core/api_service.dart';
+import '../widgets/server_settings_dialog.dart';
 import 'contacts_screen.dart';
 import 'voice_guardian_screen.dart';
 import 'safety_map_screen.dart';
@@ -15,7 +16,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ApiService _apiService = ApiService();
   bool _isBackendHealthy = false;
   bool _checkingHealth = true;
@@ -23,17 +24,49 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _checkServerHealth();
+    WidgetsBinding.instance.addObserver(this);
+    _checkServerHealthAndSync();
   }
 
-  Future<void> _checkServerHealth() async {
-    setState(() => _checkingHealth = true);
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkServerHealthAndSync();
+    }
+  }
+
+  Future<void> _checkServerHealthAndSync() async {
+    if (mounted) setState(() => _checkingHealth = true);
     final healthy = await _apiService.checkHealth();
-    if (mounted) {
-      setState(() {
-        _isBackendHealthy = healthy;
-        _checkingHealth = false;
-      });
+    if (!mounted) return;
+
+    setState(() {
+      _isBackendHealthy = healthy;
+      _checkingHealth = false;
+    });
+
+    // Whenever cellular connection to Cloud Server is available, flush any pending offline alerts
+    if (healthy) {
+      final auth = context.read<AuthProvider>();
+      final incProv = context.read<IncidentProvider>();
+      if (auth.token != null && incProv.pendingCount > 0) {
+        final flushed = await incProv.flushOfflineQueue(auth.token!);
+        if (flushed > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Synced $flushed queued emergency alert(s) to Cloud Server over cellular data.'),
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -71,6 +104,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.cell_tower_rounded, color: Color(0xFFA5B4FC)),
+            tooltip: 'Cloud Server Settings',
+            onPressed: () async {
+              await ServerSettingsDialog.show(context);
+              _checkServerHealthAndSync();
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_outlined, color: Color(0xFFFCA5A5)),
             tooltip: 'Sign Out',
             onPressed: () => _confirmSignOut(context),
@@ -83,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: const Color(0xFF6366F1),
               onRefresh: () async {
                 await auth.refreshProfile();
-                await _checkServerHealth();
+                await _checkServerHealthAndSync();
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -91,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // System Status Pill
+                    // Cellular / Cloud Server Status Pill
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
@@ -107,26 +148,28 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 8,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              color: _isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
                               boxShadow: [
                                 BoxShadow(
-                                  color: (_isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withValues(alpha: 0.6),
+                                  color: (_isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFFF59E0B)).withValues(alpha: 0.6),
                                   blurRadius: 8,
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            _checkingHealth
-                                ? 'Checking system link...'
-                                : _isBackendHealthy
-                                    ? 'PostgreSQL 17 Backend Live'
-                                    : 'Server Unreachable',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _isBackendHealthy ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5),
+                          Expanded(
+                            child: Text(
+                              _checkingHealth
+                                  ? 'Connecting over Cellular Data...'
+                                  : _isBackendHealthy
+                                      ? 'Cloud Safety Server Live (Cellular 4G/5G)'
+                                      : 'Zero-Internet Mode Active (GPS + GSM Fallback)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _isBackendHealthy ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D),
+                              ),
                             ),
                           ),
                         ],
@@ -134,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 18),
 
-                    // System Capabilities Card
+                    // Cellular + Isolated Zone Architecture Card
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -142,26 +185,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.35)),
                       ),
-                      child: Column(
+                      child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            children: const [
+                            children: [
                               Icon(Icons.shield_outlined, color: Color(0xFF67E8F9), size: 20),
                               SizedBox(width: 8),
-                              Text(
-                                'Autonomous Safety Protection Active',
-                                style: TextStyle(
-                                  color: Color(0xFF67E8F9),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  'Cellular Cloud & Isolated Zone Protection',
+                                  style: TextStyle(
+                                    color: Color(0xFF67E8F9),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Offline voice trigger recognition (Phase 3) and GPS location telemetry with local offline queue persistence (Phase 4) are armed. Distress events are cached locally and synchronized with PostgreSQL.',
+                          SizedBox(height: 8),
+                          Text(
+                            'Emergency triggers operate directly over cellular data to the Cloud Server for instant SMS & guardian dispatch. In remote dead-zones with zero mobile data, satellite GPS locks your location and falls back to direct GSM call & SMS.',
                             style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13, height: 1.45),
                           ),
                         ],
@@ -169,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // SOS Panic Button & Offline Queue Card
+                    // SOS Panic Button & Cellular/GSM Fallback Card
                     Consumer<IncidentProvider>(
                       builder: (context, incProv, _) {
                         return Container(
@@ -192,8 +237,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: const [
+                                  const Row(
+                                    children: [
                                       Icon(Icons.emergency, color: Color(0xFFF87171), size: 22),
                                       SizedBox(width: 8),
                                       Text(
@@ -203,23 +248,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ],
                                   ),
                                   if (incProv.pendingCount > 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
-                                      ),
-                                      child: Text(
-                                        '${incProv.pendingCount} Offline Queued',
-                                        style: const TextStyle(color: Color(0xFFFCD34D), fontSize: 11, fontWeight: FontWeight.w700),
+                                    GestureDetector(
+                                      onTap: _checkServerHealthAndSync,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                                        ),
+                                        child: Text(
+                                          '${incProv.pendingCount} Queued • Tap Sync',
+                                          style: const TextStyle(color: Color(0xFFFCD34D), fontSize: 11, fontWeight: FontWeight.w700),
+                                        ),
                                       ),
                                     ),
                                 ],
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'Tap to immediately record distress telemetry with current GPS coordinates into local durable storage.',
+                                'Locks hardware GPS, sends SOS to Cloud Server over cellular internet, and prepares direct GSM SMS/Call fallback if mobile internet is unavailable.',
                                 style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                               ),
                               const SizedBox(height: 16),
@@ -241,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       )
                                     : const Icon(Icons.warning_amber_rounded, size: 22),
                                 label: Text(
-                                  incProv.isTriggering ? 'Recording Telemetry...' : 'TRIGGER EMERGENCY SOS',
+                                  incProv.isTriggering ? 'Dispatching SOS & Locking GPS...' : 'TRIGGER EMERGENCY SOS',
                                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
                                 ),
                                 onPressed: incProv.isTriggering
@@ -251,29 +299,82 @@ class _HomeScreenState extends State<HomeScreen> {
                                         final messenger = ScaffoldMessenger.of(context);
                                         final item = await incProv.triggerEmergency(
                                           token: auth.token,
+                                          user: auth.user,
                                           triggerType: 'manual_sos_button',
+                                          triggerGsmFallbackIfOffline: true,
                                         );
                                         final dispatched = incProv.lastDispatchedCount;
+                                        final syncedToServer = incProv.lastSyncedToServer;
+                                        final coords = (item.latitude != null && item.longitude != null)
+                                            ? '${item.latitude!.toStringAsFixed(4)}, ${item.longitude!.toStringAsFixed(4)}'
+                                            : 'GPS Pending';
+
+                                        String msg;
+                                        if (syncedToServer && dispatched > 0) {
+                                          msg = 'SOS Sent to Cloud Server ($coords)! $dispatched guardian alert(s) dispatched.';
+                                        } else if (syncedToServer) {
+                                          msg = 'SOS Recorded on Cloud Server ($coords)! Guardian dispatch ready.';
+                                        } else {
+                                          msg = 'No mobile internet — SOS saved locally ($coords) & GSM emergency SMS launched for auto-sync.';
+                                        }
+
                                         messenger.showSnackBar(
                                           SnackBar(
-                                            content: Text(
-                                              dispatched > 0
-                                                  ? 'Emergency SOS Broadcast! Lat: ${item.latitude?.toStringAsFixed(4) ?? "N/A"}, Lon: ${item.longitude?.toStringAsFixed(4) ?? "N/A"}. Alerts sent to $dispatched contacts!'
-                                                  : 'Emergency Recorded! Lat: ${item.latitude?.toStringAsFixed(4) ?? "N/A"}, Lon: ${item.longitude?.toStringAsFixed(4) ?? "N/A"}. Queued & Synced.',
-                                            ),
-                                            backgroundColor: const Color(0xFFEF4444),
+                                            content: Text(msg),
+                                            backgroundColor: syncedToServer
+                                                ? const Color(0xFFEF4444)
+                                                : const Color(0xFFD97706),
                                             behavior: SnackBarBehavior.floating,
                                           ),
                                         );
                                       },
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Direct Cellular Voice Call & Helpline Buttons (Zero Mobile Data Required)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFF6EE7B7),
+                                        side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.45)),
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
+                                      label: const Text('Call Guardian', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                      onPressed: () => incProv.launchGuardianCall(user: user),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFFCA5A5),
+                                        side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.45)),
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      icon: const Icon(Icons.local_police_outlined, size: 16),
+                                      label: Text(
+                                        'Dial ${user.preferredPoliceHelpline}',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                      ),
+                                      onPressed: () => incProv.launchGuardianCall(
+                                        overridePhone: user.preferredPoliceHelpline,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
 
                               if (incProv.lastLocation != null) ...[
                                 const SizedBox(height: 10),
                                 Text(
                                   incProv.lastLocation!.isUnavailable
-                                      ? 'Location Status: ${incProv.lastLocation!.unavailableReason}'
-                                      : 'GPS Accuracy: ±${incProv.lastLocation!.accuracyMeters?.toStringAsFixed(1)}m • Timestamp: ${incProv.lastLocation!.timestamp?.toLocal().toString().split(".")[0]}',
+                                      ? 'GPS Status: ${incProv.lastLocation!.unavailableReason}'
+                                      : 'GPS Lock: ±${incProv.lastLocation!.accuracyMeters?.toStringAsFixed(1)}m • ${incProv.lastLocation!.timestamp?.toLocal().toString().split(".")[0]}',
                                   style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
                                   textAlign: TextAlign.center,
                                 ),
@@ -333,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     const Text(
-                                      'Verified Guardian Account',
+                                      'Verified Protected Profile',
                                       style: TextStyle(
                                         color: Color(0xFF64748B),
                                         fontSize: 12,
@@ -349,9 +450,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
                                 ),
-                                child: const Text(
-                                  'ACTIVE',
-                                  style: TextStyle(
+                                child: Text(
+                                  auth.isOfflineSession ? 'CACHED' : 'ACTIVE',
+                                  style: const TextStyle(
                                     color: Color(0xFF6EE7B7),
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -362,11 +463,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const Divider(color: Color(0xFF1E293B), height: 32),
 
-                          _buildDetailRow('Email Address', user.email),
+                          if (user.email.isNotEmpty) ...[
+                            _buildDetailRow('Account Email', user.email),
+                            const SizedBox(height: 14),
+                          ],
+                          if (user.phoneNumber.isNotEmpty) ...[
+                            _buildDetailRow('Registered Mobile', user.phoneNumber),
+                            const SizedBox(height: 14),
+                          ],
+                          _buildDetailRow(
+                            'Primary Guardian',
+                            user.emergencyContactPhone != null && user.emergencyContactPhone!.isNotEmpty
+                                ? '${user.emergencyContactName ?? "Guardian"} (${user.emergencyContactPhone})'
+                                : 'Set in Emergency Responders',
+                          ),
                           const SizedBox(height: 14),
-                          _buildDetailRow('Emergency Phone', user.phoneNumber),
-                          const SizedBox(height: 14),
-                          _buildDetailRow('Account UUID', user.id, isMonospace: true),
+                          _buildDetailRow(
+                            'Emergency Helpline',
+                            '${user.preferredPoliceHelpline}${user.cityPoliceJurisdiction != null && user.cityPoliceJurisdiction!.isNotEmpty ? " • ${user.cityPoliceJurisdiction}" : ""}',
+                          ),
                         ],
                       ),
                     ),
@@ -391,17 +506,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Icon(Icons.people_alt_outlined, color: Color(0xFF6366F1), size: 24),
                           ),
                           const SizedBox(width: 14),
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text(
                                   'Emergency Responders',
                                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'Manage tiered contacts & SMS broadcast',
+                                  'Manage trusted contacts & cloud SMS alerts',
                                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                                 ),
                               ],
@@ -426,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Voice Guardian Action Card (Phase 3)
+                    // Voice Guardian Action Card
                     Consumer<VoiceTriggerProvider>(
                       builder: (context, voiceProv, _) {
                         final isGuarding = voiceProv.isListening;
@@ -490,7 +605,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     const Text(
-                                      'Offline on-device safe word detection',
+                                      'Works offline • Calls guardian & logs SOS',
                                       style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                                     ),
                                   ],
@@ -517,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Community Safety Map Action Card (Phase 8)
+                    // Community Safety Map Action Card
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -536,17 +651,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Icon(Icons.map_outlined, color: Color(0xFF38BDF8), size: 24),
                           ),
                           const SizedBox(width: 14),
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text(
                                   'Community Safety Map',
                                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'Perimeter hazards, safe havens & kiosks',
+                                  'Safe havens, police booths & route alerts',
                                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                                 ),
                               ],
@@ -571,7 +686,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Roadmap Card
+                    // Isolated Zone Working Procedure Card
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -583,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Platform Progression',
+                            'Emergency Working Procedure',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -591,11 +706,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          _buildPhaseItem('Phase 1-4', 'Core Telemetry, Contacts & Voice', true),
-                          _buildPhaseItem('Phase 5-6', 'Twilio Alerts & Live Monitor', true),
-                          _buildPhaseItem('Phase 7', 'Voice-Stress ML Classification', true),
-                          _buildPhaseItem('Phase 8', 'Community Safety Map & Sanctuaries', true),
-                          _buildPhaseItem('Phase 9-10', 'E2E Resilience & Docker Deploy', false, isNext: true),
+                          _buildStepItem('STEP 1', 'Hardware GPS Coordinate Lock (No Wi-Fi Needed)', true),
+                          _buildStepItem('STEP 2', 'Cloud Server SOS & Twilio SMS via Cellular Data', _isBackendHealthy),
+                          _buildStepItem('STEP 3', 'Direct GSM Voice Call & SMS Fallback in Dead-Zones', true),
+                          _buildStepItem('STEP 4', 'Auto-Sync Queued Alerts When Cellular Returns', true),
                         ],
                       ),
                     ),
@@ -606,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool isMonospace = false}) {
+  Widget _buildDetailRow(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -622,18 +736,17 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 3),
         Text(
           value,
-          style: TextStyle(
-            color: const Color(0xFFE2E8F0),
-            fontSize: isMonospace ? 12 : 14,
-            fontWeight: isMonospace ? FontWeight.w500 : FontWeight.w600,
-            fontFamily: isMonospace ? 'monospace' : null,
+          style: const TextStyle(
+            color: Color(0xFFE2E8F0),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPhaseItem(String tag, String title, bool isDone, {bool isNext = false}) {
+  Widget _buildStepItem(String tag, String title, bool isReady) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
@@ -641,21 +754,15 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: isDone
+              color: isReady
                   ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                  : isNext
-                      ? const Color(0xFF6366F1).withValues(alpha: 0.2)
-                      : const Color(0xFF1E293B),
+                  : const Color(0xFFF59E0B).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               tag,
               style: TextStyle(
-                color: isDone
-                    ? const Color(0xFF6EE7B7)
-                    : isNext
-                        ? const Color(0xFFA5B4FC)
-                        : const Color(0xFF94A3B8),
+                color: isReady ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D),
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -665,24 +772,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                color: isDone ? Colors.white : const Color(0xFF94A3B8),
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 13,
-                fontWeight: isDone ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Icon(
-            isDone
-                ? Icons.check_circle
-                : isNext
-                    ? Icons.arrow_forward
-                    : Icons.radio_button_unchecked,
-            color: isDone
-                ? const Color(0xFF10B981)
-                : isNext
-                    ? const Color(0xFF6366F1)
-                    : const Color(0xFF475569),
+            isReady ? Icons.check_circle : Icons.sync_problem,
+            color: isReady ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
             size: 16,
           ),
         ],

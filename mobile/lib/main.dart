@@ -21,8 +21,24 @@ class NexaSafetyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..initializeAuth()),
-        ChangeNotifierProvider(create: (_) => VoiceTriggerProvider()),
         ChangeNotifierProvider(create: (_) => IncidentProvider()),
+        ChangeNotifierProxyProvider2<AuthProvider, IncidentProvider, VoiceTriggerProvider>(
+          create: (_) => VoiceTriggerProvider(),
+          update: (_, auth, incident, voice) {
+            final v = voice ?? VoiceTriggerProvider();
+            v.syncCustomSafeWord(auth.user?.safeWordPhrase);
+            v.attachDistressCallback((event) async {
+              await incident.triggerEmergency(
+                token: auth.token,
+                user: auth.user,
+                triggerType: 'voice_trigger_${event.matchedPhrase}',
+                // Voice trigger already opens GSM call immediately; trigger SMS fallback only if no server connection
+                triggerGsmFallbackIfOffline: false,
+              );
+            });
+            return v;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'Nexa AI Safety',

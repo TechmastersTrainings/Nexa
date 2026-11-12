@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_service.dart';
+import '../core/constants.dart';
 import '../providers/auth_provider.dart';
 
 class ContactsScreen extends StatefulWidget {
@@ -33,6 +35,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     try {
       final data = await _apiService.getContacts(token);
+      if (data.isNotEmpty) {
+        final primary = data.first;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(AppConstants.keyGuardianPhone, primary.phoneNumber.trim());
+        await prefs.setString(AppConstants.keyGuardianName, primary.name.trim());
+      }
       if (mounted) {
         setState(() {
           _contacts = data;

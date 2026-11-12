@@ -13,7 +13,7 @@ void main() {
     await tester.pumpWidget(const NexaSafetyApp());
     await tester.pumpAndSettle();
 
-    // Verify initial auth screen displays Nexa brand
-    expect(find.text('NEXA AI SAFETY'), findsOneWidget);
+    // Verify initial auth screen displays Nexa guardian login portal
+    expect(find.text('Access Guardian Portal'), findsOneWidget);
   });
 }

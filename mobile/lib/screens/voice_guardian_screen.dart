@@ -82,7 +82,7 @@ class _VoiceGuardianScreenState extends State<VoiceGuardianScreen> {
       backgroundColor: const Color(0xFF07090E),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D121D),
-        title: const Text('Voice Guardian (Phase 3)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: const Text('Voice Guardian', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
         elevation: 0,
       ),
       body: SingleChildScrollView(

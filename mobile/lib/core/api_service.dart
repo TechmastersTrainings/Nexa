@@ -12,6 +12,16 @@ class UserProfile {
   final bool isVerified;
   final bool phoneVerified;
   final String createdAt;
+  final String? safeWordPhrase;
+  final String? emergencyContactName;
+  final String? emergencyContactPhone;
+  final String? emergencyContactRelation;
+  final String? homeAddress;
+  final String? cityPoliceJurisdiction;
+  final String preferredPoliceHelpline;
+  final String? bloodGroup;
+  final String? medicalNotes;
+  final int? age;
 
   UserProfile({
     required this.id,
@@ -22,18 +32,38 @@ class UserProfile {
     required this.isVerified,
     required this.phoneVerified,
     required this.createdAt,
+    this.safeWordPhrase,
+    this.emergencyContactName,
+    this.emergencyContactPhone,
+    this.emergencyContactRelation,
+    this.homeAddress,
+    this.cityPoliceJurisdiction,
+    this.preferredPoliceHelpline = '112',
+    this.bloodGroup,
+    this.medicalNotes,
+    this.age,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      fullName: json['full_name'] as String,
-      phoneNumber: json['phone_number'] as String,
+      id: (json['id'] ?? '').toString(),
+      email: json['email'] as String? ?? '',
+      fullName: json['full_name'] as String? ?? '',
+      phoneNumber: json['phone_number'] as String? ?? '',
       isActive: json['is_active'] as bool? ?? true,
-      isVerified: json['is_verified'] as bool? ?? false,
-      phoneVerified: json['phone_verified'] as bool? ?? false,
+      isVerified: (json['is_verified'] ?? json['is_email_verified']) as bool? ?? false,
+      phoneVerified: (json['phone_verified'] ?? json['is_phone_verified']) as bool? ?? false,
       createdAt: json['created_at'] as String? ?? '',
+      safeWordPhrase: json['safe_word_phrase'] as String?,
+      emergencyContactName: json['emergency_contact_name'] as String?,
+      emergencyContactPhone: json['emergency_contact_phone'] as String?,
+      emergencyContactRelation: json['emergency_contact_relation'] as String?,
+      homeAddress: json['home_address'] as String?,
+      cityPoliceJurisdiction: json['city_police_jurisdiction'] as String?,
+      preferredPoliceHelpline: json['preferred_police_helpline'] as String? ?? '112',
+      bloodGroup: json['blood_group'] as String?,
+      medicalNotes: json['medical_notes'] as String?,
+      age: (json['age'] as num?)?.toInt(),
     );
   }
 
@@ -46,6 +76,16 @@ class UserProfile {
     'is_verified': isVerified,
     'phone_verified': phoneVerified,
     'created_at': createdAt,
+    'safe_word_phrase': safeWordPhrase,
+    'emergency_contact_name': emergencyContactName,
+    'emergency_contact_phone': emergencyContactPhone,
+    'emergency_contact_relation': emergencyContactRelation,
+    'home_address': homeAddress,
+    'city_police_jurisdiction': cityPoliceJurisdiction,
+    'preferred_police_helpline': preferredPoliceHelpline,
+    'blood_group': bloodGroup,
+    'medical_notes': medicalNotes,
+    'age': age,
   };
 }
 
@@ -95,14 +135,16 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  final String? _customBaseUrl;
-  String get baseUrl => _customBaseUrl ?? AppConstants.defaultApiBase;
+  final String? customBaseUrl;
+  String get baseUrl => customBaseUrl ?? AppConstants.defaultApiBase;
 
-  ApiService({String? customBaseUrl}) : _customBaseUrl = customBaseUrl;
+  ApiService({this.customBaseUrl});
 
   Future<bool> checkHealth() async {
     try {
-      final res = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 4));
+      final res = await http
+          .get(Uri.parse('$baseUrl/health'))
+          .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         return data['status'] == 'healthy';
@@ -155,7 +197,7 @@ class ApiService {
           'email': email.trim(),
           'password': password,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 18));
 
       final data = _parseResponse(res, 200, 'Invalid email or password.');
       return data['access_token'] as String;
@@ -229,7 +271,7 @@ class ApiService {
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 20));
 
       final data = _parseResponse(res, 201, 'Registration failed.');
       return UserProfile.fromJson(data);
@@ -330,15 +372,10 @@ class ApiService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({'incidents': incidents}),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 20));
 
-      final data = jsonDecode(res.body);
-      if (res.statusCode == 200) {
-        return data;
-      } else {
-        final detail = data['detail'];
-        throw ApiException(detail is String ? detail : 'Batch sync failed.', res.statusCode);
-      }
+      final data = _parseResponse(res, 200, 'Batch sync failed.');
+      return (data as Map<String, dynamic>?) ?? {};
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Batch sync error: ${e.toString()}');
@@ -363,15 +400,10 @@ class ApiService {
           'alert_type': alertType,
           'recipient_ids': recipientIds,
         }),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 20));
 
-      final data = jsonDecode(res.body);
-      if (res.statusCode == 201) {
-        return data;
-      } else {
-        final detail = data['detail'];
-        throw ApiException(detail is String ? detail : 'Alert dispatch failed.', res.statusCode);
-      }
+      final data = _parseResponse(res, 201, 'Alert dispatch failed.');
+      return (data as Map<String, dynamic>?) ?? {};
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Alert dispatch error: ${e.toString()}');

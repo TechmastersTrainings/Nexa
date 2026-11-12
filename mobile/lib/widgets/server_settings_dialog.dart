@@ -10,7 +10,7 @@ class ServerSettingsDialog extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -49,6 +49,14 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
     final rawUrl = _urlController.text.trim();
     if (rawUrl.isEmpty) return;
 
+    if (AppConstants.isLocalOrPrivateUrl(rawUrl)) {
+      setState(() {
+        _isSuccess = false;
+        _testStatus = 'Local Wi-Fi addresses are disabled. Use your HTTPS Cloud Server URL for cellular access.';
+      });
+      return;
+    }
+
     setState(() {
       _testing = true;
       _testStatus = null;
@@ -56,33 +64,36 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
 
     try {
       String testEndpoint = rawUrl;
+      if (!testEndpoint.startsWith('https://') && !testEndpoint.startsWith('http://')) {
+        testEndpoint = 'https://$testEndpoint';
+      }
       if (!testEndpoint.endsWith('/health')) {
         if (testEndpoint.endsWith('/api/v1')) {
-          testEndpoint = testEndpoint.replaceAll('/api/v1', '/health');
-        } else if (testEndpoint.endsWith('/')) {
-          testEndpoint = '${testEndpoint}health';
-        } else {
           testEndpoint = '$testEndpoint/health';
+        } else if (testEndpoint.endsWith('/')) {
+          testEndpoint = '${testEndpoint}api/v1/health';
+        } else {
+          testEndpoint = '$testEndpoint/api/v1/health';
         }
       }
 
-      final res = await http.get(Uri.parse(testEndpoint)).timeout(const Duration(seconds: 5));
+      final res = await http.get(Uri.parse(testEndpoint)).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         setState(() {
           _isSuccess = true;
-          _testStatus = 'Connected: ${data["service"] ?? "Nexa Sentinel"} (Online)';
+          _testStatus = 'Connected via Cellular/Cloud: ${data["service"] ?? "Nexa Sentinel"} (Online)';
         });
       } else {
         setState(() {
           _isSuccess = false;
-          _testStatus = 'Server replied with HTTP ${res.statusCode}';
+          _testStatus = 'Cloud Server replied with HTTP ${res.statusCode}';
         });
       }
-    } catch (e) {
+    } catch (_) {
       setState(() {
         _isSuccess = false;
-        _testStatus = 'Connection failed: Unable to reach host';
+        _testStatus = 'Connection failed: Check your mobile data signal and Cloud URL.';
       });
     } finally {
       setState(() {
@@ -95,12 +106,22 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
     final rawUrl = _urlController.text.trim();
     if (rawUrl.isEmpty) return;
 
-    await AppConstants.setApiBase(rawUrl);
+    if (AppConstants.isLocalOrPrivateUrl(rawUrl)) {
+      setState(() {
+        _isSuccess = false;
+        _testStatus = 'Local Wi-Fi is not supported in isolated areas. Enter an HTTPS Cloud Server URL.';
+      });
+      return;
+    }
+
+    final saved = await AppConstants.setApiBase(rawUrl);
+    if (!saved) return;
+
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Connected to: ${AppConstants.defaultApiBase}'),
+          content: Text('Cloud Server updated: ${AppConstants.defaultApiBase}'),
           backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
         ),
@@ -122,7 +143,7 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
               width: 44,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF334155),
+                color: const Color(0xFFCBD5E1),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -133,12 +154,12 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFFEDE9FE),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.dns_rounded, color: Color(0xFF818CF8), size: 22),
+                child: const Icon(Icons.cell_tower_rounded, color: Color(0xFF7C3AED), size: 22),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -146,77 +167,73 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Emergency Server Link',
+                      'Cloud Server Connection',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
+                    SizedBox(height: 2),
                     Text(
-                      'Switch between Cloud Render and Local Wi-Fi',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      'Cellular Mobile Data (4G/5G) -> Cloud Safety Server',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          // Quick Presets
-          const Text(
-            'QUICK PRESETS',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.5,
+          // Isolated Area Architecture Info Box
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F3FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFDDD6FE)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.shield_outlined, size: 17, color: Color(0xFF6D28D9)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'All emergency alerts and safety telemetry run directly on the Cloud Server over Cellular Internet. In zero-internet dead zones, emergencies queue locally and fall back to direct GSM Call & SMS.',
+                    style: TextStyle(fontSize: 11.5, color: Color(0xFF4C1D95), height: 1.35),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _urlController.text = AppConstants.defaultRenderUrl;
-                    });
-                  },
-                  icon: const Icon(Icons.cloud_outlined, size: 16, color: Color(0xFF818CF8)),
-                  label: const Text('Render Cloud', style: TextStyle(fontSize: 12, color: Colors.white)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF334155)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _urlController.text = AppConstants.defaultLocalWifiUrl;
-                    });
-                  },
-                  icon: const Icon(Icons.wifi, size: 16, color: Color(0xFF34D399)),
-                  label: const Text('Local Wi-Fi', style: TextStyle(fontSize: 12, color: Colors.white)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF334155)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 16),
+
+          // Quick Default Preset
+          OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _urlController.text = AppConstants.defaultRenderUrl;
+                _testStatus = null;
+              });
+            },
+            icon: const Icon(Icons.cloud_done_outlined, size: 16, color: Color(0xFF7C3AED)),
+            label: const Text(
+              'Use Default Cloud Server',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
           const SizedBox(height: 16),
 
           // URL Input Field
           const Text(
-            'API BASE URL',
+            'CLOUD SERVER URL',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -227,24 +244,25 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
           const SizedBox(height: 8),
           TextField(
             controller: _urlController,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            keyboardType: TextInputType.url,
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13),
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFF1E293B),
-              hintText: 'https://your-service.onrender.com/api/v1',
-              hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+              fillColor: const Color(0xFFF8FAFC),
+              hintText: 'https://your-cloud-server.onrender.com/api/v1',
+              hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF334155)),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF334155)),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 1.5),
               ),
             ),
           ),
@@ -255,19 +273,17 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _isSuccess
-                    ? const Color(0xFF10B981).withOpacity(0.12)
-                    : const Color(0xFFEF4444).withOpacity(0.12),
-                borderRadius: BorderRadius.circular(8),
+                color: _isSuccess ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _isSuccess ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  color: _isSuccess ? const Color(0xFF10B981) : const Color(0xFFFCA5A5),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    _isSuccess ? Icons.check_circle : Icons.error_outline,
-                    color: _isSuccess ? const Color(0xFF34D399) : const Color(0xFFF87171),
+                    _isSuccess ? Icons.check_circle_outline : Icons.error_outline,
+                    color: _isSuccess ? const Color(0xFF059669) : const Color(0xFFDC2626),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -276,7 +292,7 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
                       _testStatus!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: _isSuccess ? const Color(0xFF34D399) : const Color(0xFFF87171),
+                        color: _isSuccess ? const Color(0xFF065F46) : const Color(0xFFB91C1C),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -291,19 +307,20 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
           Row(
             children: [
               Expanded(
-                child: TextButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: _testing ? null : _testConnection,
                   icon: _testing
                       ? const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7C3AED)),
                         )
-                      : const Icon(Icons.bolt, size: 16),
-                  label: const Text('Test Connection'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF94A3B8),
+                      : const Icon(Icons.bolt, size: 16, color: Color(0xFF475569)),
+                  label: const Text('Test Cloud Link', style: TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
@@ -312,7 +329,7 @@ class _ServerSettingsDialogState extends State<ServerSettingsDialog> {
                 child: ElevatedButton(
                   onPressed: _saveAndApply,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7C3AED),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
