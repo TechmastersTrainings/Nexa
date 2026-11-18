@@ -1,5 +1,5 @@
 // Nexa AI Women Safety Platform - API Client
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://nexa-b73r.onrender.com/api/v1';
 
 export interface UserProfile {
   id: string;

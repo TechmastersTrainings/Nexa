@@ -15,7 +15,7 @@ class AppConstants {
   static const String keySafeWordPhrase = 'nexa_safe_word_phrase';
 
   // Cloud Endpoint (Cellular Mobile Data / Public Internet)
-  static const String defaultRenderUrl = 'https://nexa-safety-api.onrender.com/api/v1';
+  static const String defaultRenderUrl = 'https://nexa-b73r.onrender.com/api/v1';
 
   static String? _cachedApiBase;
 
@@ -46,8 +46,8 @@ class AppConstants {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(keyCustomApiBase);
       if (saved != null && saved.trim().isNotEmpty) {
-        if (isLocalOrPrivateUrl(saved)) {
-          // Purge any legacy Local Wi-Fi address and enforce Cloud Cellular Server
+        if (isLocalOrPrivateUrl(saved) || saved.contains('nexa-safety-api.onrender.com')) {
+          // Purge legacy addresses and enforce live Cloud Server
           await prefs.remove(keyCustomApiBase);
           _cachedApiBase = null;
         } else {
