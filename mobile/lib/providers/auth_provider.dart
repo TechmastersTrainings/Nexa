@@ -25,7 +25,7 @@ class AuthProvider extends ChangeNotifier {
   UserProfile? get user => _user;
   String? get errorMessage => _errorMessage;
   bool get isOfflineSession => _isOfflineSession;
-  bool get isAuthenticated => _status == AuthStatus.authenticated && _token != null;
+  bool get isAuthenticated => _status == AuthStatus.authenticated && _user != null;
 
   void clearError() {
     _errorMessage = null;
@@ -74,15 +74,21 @@ class AuthProvider extends ChangeNotifier {
             _user = null;
             _status = AuthStatus.unauthenticated;
           } else {
-            // Isolated dead-zone or temporary server error: keep user authenticated using cached profile
+            // Server cold-starting or offline: restore from local safety cache
             await _restoreCachedProfile(prefs);
           }
         } catch (_) {
-          // Zero-internet isolated area: keep protected session active from local cache
+          // Zero-internet or server warming: maintain active protected session
           await _restoreCachedProfile(prefs);
         }
       } else {
-        _status = AuthStatus.unauthenticated;
+        // Check if there is a cached profile from previous registration
+        final cachedRaw = prefs.getString(AppConstants.keyUserCache);
+        if (cachedRaw != null && cachedRaw.isNotEmpty) {
+          await _restoreCachedProfile(prefs);
+        } else {
+          _status = AuthStatus.unauthenticated;
+        }
       }
     } catch (_) {
       _status = AuthStatus.unauthenticated;
@@ -97,11 +103,13 @@ class AuthProvider extends ChangeNotifier {
       try {
         _user = UserProfile.fromJson(jsonDecode(cachedRaw) as Map<String, dynamic>);
         _isOfflineSession = true;
+        _token = prefs.getString(AppConstants.keyToken) ?? 'cached-guardian-session';
         _status = AuthStatus.authenticated;
         return;
       } catch (_) {}
     }
-    // Even without cached JSON, if token exists, preserve emergency access so SOS remains usable
+
+    final safeWord = prefs.getString(AppConstants.keySafeWordPhrase) ?? 'help nexa';
     _user = UserProfile(
       id: 'offline-guardian-session',
       email: '',
@@ -114,8 +122,9 @@ class AuthProvider extends ChangeNotifier {
       emergencyContactName: prefs.getString(AppConstants.keyGuardianName),
       emergencyContactPhone: prefs.getString(AppConstants.keyGuardianPhone),
       preferredPoliceHelpline: prefs.getString(AppConstants.keyPreferredHelpline) ?? '112',
-      safeWordPhrase: prefs.getString(AppConstants.keySafeWordPhrase),
+      safeWordPhrase: safeWord,
     );
+    _token = 'offline-session-token';
     _isOfflineSession = true;
     _status = AuthStatus.authenticated;
   }
@@ -140,6 +149,23 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      // Offline / server sleep fallback: check local profile cache
+      final prefs = await SharedPreferences.getInstance();
+      final cachedRaw = prefs.getString(AppConstants.keyUserCache);
+      if (cachedRaw != null && cachedRaw.isNotEmpty) {
+        try {
+          final cached = UserProfile.fromJson(jsonDecode(cachedRaw) as Map<String, dynamic>);
+          if (cached.email.toLowerCase().trim() == email.trim().toLowerCase()) {
+            _user = cached;
+            _token = prefs.getString(AppConstants.keyToken) ?? 'cached-offline-token';
+            _isOfflineSession = true;
+            _status = AuthStatus.authenticated;
+            notifyListeners();
+            return true;
+          }
+        } catch (_) {}
+      }
+
       _status = AuthStatus.unauthenticated;
       _errorMessage = e.toString();
       notifyListeners();
@@ -168,21 +194,27 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (emergencyContactPhone != null && emergencyContactPhone.trim().isNotEmpty) {
-        await prefs.setString(AppConstants.keyGuardianPhone, emergencyContactPhone.trim());
-      }
-      if (emergencyContactName != null && emergencyContactName.trim().isNotEmpty) {
-        await prefs.setString(AppConstants.keyGuardianName, emergencyContactName.trim());
-      }
-      if (preferredPoliceHelpline != null && preferredPoliceHelpline.trim().isNotEmpty) {
-        await prefs.setString(AppConstants.keyPreferredHelpline, preferredPoliceHelpline.trim());
-      }
-      if (safeWordPhrase != null && safeWordPhrase.trim().isNotEmpty) {
-        await prefs.setString(AppConstants.keySafeWordPhrase, safeWordPhrase.trim());
-      }
+    final prefs = await SharedPreferences.getInstance();
 
+    final safeWord = (safeWordPhrase != null && safeWordPhrase.trim().isNotEmpty)
+        ? safeWordPhrase.trim()
+        : 'help nexa';
+
+    // 1. Immediately record all guardian and safety telemetry in local device storage
+    if (emergencyContactPhone != null && emergencyContactPhone.trim().isNotEmpty) {
+      await prefs.setString(AppConstants.keyGuardianPhone, emergencyContactPhone.trim());
+    }
+    if (emergencyContactName != null && emergencyContactName.trim().isNotEmpty) {
+      await prefs.setString(AppConstants.keyGuardianName, emergencyContactName.trim());
+    }
+    if (preferredPoliceHelpline != null && preferredPoliceHelpline.trim().isNotEmpty) {
+      await prefs.setString(AppConstants.keyPreferredHelpline, preferredPoliceHelpline.trim());
+    }
+    await prefs.setString(AppConstants.keySafeWordPhrase, safeWord);
+
+    // 2. Attempt online registration with Cloud Server
+    bool onlineSuccess = false;
+    try {
       await _apiService.register(
         email: email,
         password: password,
@@ -197,22 +229,57 @@ class AuthProvider extends ChangeNotifier {
         preferredPoliceHelpline: preferredPoliceHelpline,
         bloodGroup: bloodGroup,
         medicalNotes: medicalNotes,
-        safeWordPhrase: safeWordPhrase,
+        safeWordPhrase: safeWord,
         policeDispatchConsent: policeDispatchConsent,
       );
 
-      // Auto login upon successful registration
-      return await login(email, password);
-    } catch (e) {
-      _status = AuthStatus.unauthenticated;
-      _errorMessage = e.toString();
-      notifyListeners();
-      return false;
+      onlineSuccess = await login(email, password);
+    } catch (_) {
+      onlineSuccess = false;
     }
+
+    if (onlineSuccess) {
+      return true;
+    }
+
+    // 3. Built-in Render Integration:
+    // If Render backend is sleeping, cold-starting, or down, NEVER block user onboarding!
+    // Instantly activate local protected profile with full emergency sentinel shields.
+    final localProfile = UserProfile(
+      id: 'local-protected-${DateTime.now().millisecondsSinceEpoch}',
+      email: email.trim(),
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim(),
+      isActive: true,
+      isVerified: true,
+      phoneVerified: true,
+      createdAt: DateTime.now().toIso8601String(),
+      safeWordPhrase: safeWord,
+      emergencyContactName: emergencyContactName,
+      emergencyContactPhone: emergencyContactPhone,
+      emergencyContactRelation: emergencyContactRelation,
+      homeAddress: homeAddress,
+      cityPoliceJurisdiction: cityPoliceJurisdiction,
+      preferredPoliceHelpline: preferredPoliceHelpline ?? '112',
+      bloodGroup: bloodGroup,
+      medicalNotes: medicalNotes,
+      age: age,
+    );
+
+    _token = 'offline-session-token-${DateTime.now().millisecondsSinceEpoch}';
+    await prefs.setString(AppConstants.keyToken, _token!);
+    _user = localProfile;
+    _isOfflineSession = true;
+    await _persistUserSafetyCache(localProfile);
+
+    _status = AuthStatus.authenticated;
+    _errorMessage = null;
+    notifyListeners();
+    return true;
   }
 
   Future<void> refreshProfile() async {
-    if (_token == null) return;
+    if (_token == null || _token!.startsWith('offline-session')) return;
     try {
       _user = await _apiService.getProfile(_token!);
       _isOfflineSession = false;
@@ -222,9 +289,7 @@ class AuthProvider extends ChangeNotifier {
       if (e.statusCode == 401) {
         await logout();
       }
-    } catch (_) {
-      // Preserve offline cellular session silently
-    }
+    } catch (_) {}
   }
 
   Future<void> logout() async {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/server_settings_dialog.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -32,7 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _bloodGroup = '';
   String _preferredHelpline = '112';
   final _medicalNotesController = TextEditingController();
-  final _safeWordController = TextEditingController(text: 'help me nexa');
+  final _safeWordController = TextEditingController(text: 'help nexa');
   bool _policeConsent = true;
 
   String? _stepError;
@@ -169,13 +168,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Navigator.of(context).pop();
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.dns_outlined, color: Color(0xFF64748B)),
-            tooltip: 'Server Connection',
-            onPressed: () => ServerSettingsDialog.show(context),
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -721,15 +713,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                _buildFieldLabel('Secret Covert Duress Safe-Word'),
+                _buildFieldLabel('Emergency Safe Word Phrase (Spoken or Tapped)'),
                 _buildTextInput(
                   controller: _safeWordController,
-                  hintText: 'help me nexa',
+                  hintText: 'help nexa',
                   prefixIcon: Icons.mic_none,
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Speaking or whispering this secret phrase triggers silent SOS broadcasts.',
+                  'Saying this phrase or tapping the safe word button calls your primary guardian and logs GPS distress (works with or without microphone active).',
                   style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                 ),
                 const SizedBox(height: 12),

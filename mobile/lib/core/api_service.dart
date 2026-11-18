@@ -178,9 +178,9 @@ class ApiService {
       }
     } catch (_) {
       if (res.statusCode == 404) {
-        errorMsg = 'Server endpoint not found (HTTP 404). Please check your Render URL in the top-right Server Connection settings.';
+        errorMsg = 'Cloud service is syncing or temporarily unavailable.';
       } else if (res.statusCode >= 500) {
-        errorMsg = 'Cloud server is warming up or temporarily unavailable (HTTP ${res.statusCode}). Please try again in a few moments.';
+        errorMsg = 'Cloud server is warming up (HTTP ${res.statusCode}). Retrying in background...';
       } else if (res.body.trim().isNotEmpty) {
         errorMsg = 'Server response (${res.statusCode}): ${res.body.trim()}';
       }

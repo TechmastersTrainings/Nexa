@@ -44,7 +44,7 @@ class VoiceTriggerProvider extends ChangeNotifier {
     _stateSub = _service.onStateChanged.listen((newState) {
       _state = newState;
       if (newState == VoiceEngineState.permissionDenied) {
-        _errorMessage = 'Microphone permission is required for voice guardian mode.';
+        _errorMessage = 'Microphone permission is required for automatic voice guardian mode.';
       } else {
         _errorMessage = null;
       }
@@ -55,28 +55,23 @@ class VoiceTriggerProvider extends ChangeNotifier {
       _lastTrigger = event;
       notifyListeners();
 
-      // Step 1: Capture GPS & transmit emergency incident to Cloud Server over Cellular
-      // (with automatic local queue + GSM SMS fallback if internet is unavailable in isolated zone)
+      // Step 1: Immediate Direct GSM Cellular Call to registered Primary Guardian (zero internet needed)
+      await triggerGuardianCall();
+
+      // Step 2: Capture GPS & queue/transmit emergency telemetry to Cloud Server
       if (_onDistressCallback != null) {
         try {
           await _onDistressCallback!(event);
         } catch (_) {}
       }
-
-      // Step 2: Immediate direct GSM cellular call to registered Primary Guardian (zero internet needed)
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final phone = prefs.getString(AppConstants.keyGuardianPhone) ??
-            prefs.getString('nexa_emergency_contact_phone') ??
-            prefs.getString(AppConstants.keyPreferredHelpline) ??
-            '112';
-        _activeGuardianPhone = phone;
-        final Uri telUri = Uri.parse('tel:$phone');
-        if (await canLaunchUrl(telUri)) {
-          await launchUrl(telUri, mode: LaunchMode.externalApplication);
-        }
-      } catch (_) {}
     });
+  }
+
+  /// Automatically arm voice listening upon screen/app launch
+  Future<void> autoArmListening() async {
+    if (!isListening && _state != VoiceEngineState.loadingModel && !isCooldown) {
+      await _service.startListening();
+    }
   }
 
   Future<void> _loadSavedSafeWord() async {
@@ -85,9 +80,42 @@ class VoiceTriggerProvider extends ChangeNotifier {
       final savedPhrase = prefs.getString(AppConstants.keySafeWordPhrase);
       if (savedPhrase != null && savedPhrase.trim().isNotEmpty) {
         _service.addSafePhrase(savedPhrase.trim());
-        notifyListeners();
+      } else {
+        _service.addSafePhrase('help nexa');
+      }
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Direct GSM Voice Call to Primary Guardian: operates with or without microphone active
+  Future<bool> triggerGuardianCall({String? overridePhone}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String phone = (overridePhone != null && overridePhone.trim().isNotEmpty)
+          ? overridePhone.trim()
+          : (prefs.getString(AppConstants.keyGuardianPhone) ??
+             prefs.getString('nexa_emergency_contact_phone') ??
+             prefs.getString(AppConstants.keyPreferredHelpline) ??
+             '112');
+
+      _activeGuardianPhone = phone;
+
+      // Sanitize phone number: strip any whitespace, dashes, parentheses
+      final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      if (cleanPhone.isEmpty) return false;
+
+      final Uri telUri = Uri.parse('tel:$cleanPhone');
+      if (await canLaunchUrl(telUri)) {
+        return await launchUrl(telUri, mode: LaunchMode.externalApplication);
       }
     } catch (_) {}
+    return false;
+  }
+
+  /// Trigger guardian call & emergency SOS using registered safe word WITHOUT microphone turned on
+  Future<void> triggerSafeWordEmergency({String? phrase}) async {
+    final triggerWord = phrase ?? (safePhrases.isNotEmpty ? safePhrases.first : 'help nexa');
+    _service.triggerManualDistress(phrase: triggerWord, source: 'no_mic_safe_word_action');
   }
 
   Future<void> toggleListening() async {

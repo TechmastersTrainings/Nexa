@@ -71,7 +71,9 @@ class IncidentProvider extends ChangeNotifier {
       final phone = (overridePhone != null && overridePhone.trim().isNotEmpty)
           ? overridePhone.trim()
           : await resolveEmergencyTargetPhone(user: user);
-      final Uri telUri = Uri.parse('tel:$phone');
+      final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      if (cleanPhone.isEmpty) return false;
+      final Uri telUri = Uri.parse('tel:$cleanPhone');
       if (await canLaunchUrl(telUri)) {
         return await launchUrl(telUri, mode: LaunchMode.externalApplication);
       }
@@ -86,6 +88,8 @@ class IncidentProvider extends ChangeNotifier {
   }) async {
     try {
       final phone = await resolveEmergencyTargetPhone(user: user);
+      final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      if (cleanPhone.isEmpty) return false;
       final hasCoords = incident.latitude != null && incident.longitude != null && !incident.locationUnavailable;
       final locText = hasCoords
           ? 'GPS: https://maps.google.com/?q=${incident.latitude!.toStringAsFixed(6)},${incident.longitude!.toStringAsFixed(6)}'
@@ -98,7 +102,7 @@ class IncidentProvider extends ChangeNotifier {
 
       final Uri smsUri = Uri(
         scheme: 'sms',
-        path: phone,
+        path: cleanPhone,
         queryParameters: {'body': body},
       );
       if (await canLaunchUrl(smsUri)) {

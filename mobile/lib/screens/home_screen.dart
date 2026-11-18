@@ -4,7 +4,6 @@ import '../providers/auth_provider.dart';
 import '../providers/voice_trigger_provider.dart';
 import '../providers/incident_provider.dart';
 import '../core/api_service.dart';
-import '../widgets/server_settings_dialog.dart';
 import 'contacts_screen.dart';
 import 'voice_guardian_screen.dart';
 import 'safety_map_screen.dart';
@@ -26,6 +25,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkServerHealthAndSync();
+
+    // Auto-arm Voice Guardian on launch: listening is active by default
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<VoiceTriggerProvider>().autoArmListening();
+      }
+    });
   }
 
   @override
@@ -38,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkServerHealthAndSync();
+      context.read<VoiceTriggerProvider>().autoArmListening();
     }
   }
 
@@ -51,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _checkingHealth = false;
     });
 
-    // Whenever cellular connection to Cloud Server is available, flush any pending offline alerts
+    // Auto-flush queued alerts to Cloud Server whenever connected
     if (healthy) {
       final auth = context.read<AuthProvider>();
       final incProv = context.read<IncidentProvider>();
@@ -60,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (flushed > 0 && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Synced $flushed queued emergency alert(s) to Cloud Server over cellular data.'),
+              content: Text('Auto-synced $flushed emergency alert(s) to Cloud Server.'),
               backgroundColor: const Color(0xFF10B981),
               behavior: SnackBarBehavior.floating,
             ),
@@ -85,14 +92,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.shield_outlined, color: Color(0xFF6366F1), size: 20),
+              child: const Icon(Icons.shield_outlined, color: Color(0xFF7C3AED), size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
-              'NEXA GUARDIAN',
+              'NEXA SENTINEL',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -104,14 +111,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.cell_tower_rounded, color: Color(0xFFA5B4FC)),
-            tooltip: 'Cloud Server Settings',
-            onPressed: () async {
-              await ServerSettingsDialog.show(context);
-              _checkServerHealthAndSync();
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.logout_outlined, color: Color(0xFFFCA5A5)),
             tooltip: 'Sign Out',
             onPressed: () => _confirmSignOut(context),
@@ -119,9 +118,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       ),
       body: user == null
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
           : RefreshIndicator(
-              color: const Color(0xFF6366F1),
+              color: const Color(0xFF7C3AED),
               onRefresh: () async {
                 await auth.refreshProfile();
                 await _checkServerHealthAndSync();
@@ -132,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Cellular / Cloud Server Status Pill
+                    // System Status Shield Indicator
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
@@ -148,10 +147,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             height: 8,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                              color: _isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFF6366F1),
                               boxShadow: [
                                 BoxShadow(
-                                  color: (_isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFFF59E0B)).withValues(alpha: 0.6),
+                                  color: (_isBackendHealthy ? const Color(0xFF10B981) : const Color(0xFF6366F1)).withValues(alpha: 0.6),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -161,14 +160,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Expanded(
                             child: Text(
                               _checkingHealth
-                                  ? 'Connecting over Cellular Data...'
+                                  ? 'Nexa Defense Shield Armed...'
                                   : _isBackendHealthy
-                                      ? 'Cloud Safety Server Live (Cellular 4G/5G)'
-                                      : 'Zero-Internet Mode Active (GPS + GSM Fallback)',
+                                      ? 'Cloud Safety Server Live (Cellular Data Active)'
+                                      : 'Device Safety Shield Active (GPS & Guardian Auto-Dial Armed)',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: _isBackendHealthy ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D),
+                                color: _isBackendHealthy ? const Color(0xFF6EE7B7) : const Color(0xFFA5B4FC),
                               ),
                             ),
                           ),
@@ -177,44 +176,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 18),
 
-                    // Cellular + Isolated Zone Architecture Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF06B6D4).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.35)),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.shield_outlined, color: Color(0xFF67E8F9), size: 20),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Cellular Cloud & Isolated Zone Protection',
-                                  style: TextStyle(
-                                    color: Color(0xFF67E8F9),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Emergency triggers operate directly over cellular data to the Cloud Server for instant SMS & guardian dispatch. In remote dead-zones with zero mobile data, satellite GPS locks your location and falls back to direct GSM call & SMS.',
-                            style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13, height: 1.45),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // SOS Panic Button & Cellular/GSM Fallback Card
+                    // SOS Panic Button & Guardian Call Card
                     Consumer<IncidentProvider>(
                       builder: (context, incProv, _) {
                         return Container(
@@ -222,14 +184,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                const Color(0xFFDC2626).withValues(alpha: 0.15),
+                                const Color(0xFFDC2626).withValues(alpha: 0.18),
                                 const Color(0xFF0E131F),
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.35)),
+                            border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.4)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -267,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'Locks hardware GPS, sends SOS to Cloud Server over cellular internet, and prepares direct GSM SMS/Call fallback if mobile internet is unavailable.',
+                                'Locks satellite GPS coordinates and sends emergency broadcast over cellular internet. Direct phone call is ready below.',
                                 style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                               ),
                               const SizedBox(height: 16),
@@ -289,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       )
                                     : const Icon(Icons.warning_amber_rounded, size: 22),
                                 label: Text(
-                                  incProv.isTriggering ? 'Dispatching SOS & Locking GPS...' : 'TRIGGER EMERGENCY SOS',
+                                  incProv.isTriggering ? 'Broadcasting SOS & GPS...' : 'TRIGGER EMERGENCY SOS',
                                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
                                 ),
                                 onPressed: incProv.isTriggering
@@ -307,66 +269,66 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         final syncedToServer = incProv.lastSyncedToServer;
                                         final coords = (item.latitude != null && item.longitude != null)
                                             ? '${item.latitude!.toStringAsFixed(4)}, ${item.longitude!.toStringAsFixed(4)}'
-                                            : 'GPS Pending';
+                                            : 'GPS Locked';
 
                                         String msg;
                                         if (syncedToServer && dispatched > 0) {
-                                          msg = 'SOS Sent to Cloud Server ($coords)! $dispatched guardian alert(s) dispatched.';
+                                          msg = 'SOS Broadcast Sent ($coords)! $dispatched responder alert(s) sent.';
                                         } else if (syncedToServer) {
-                                          msg = 'SOS Recorded on Cloud Server ($coords)! Guardian dispatch ready.';
+                                          msg = 'SOS Recorded on Cloud Server ($coords).';
                                         } else {
-                                          msg = 'No mobile internet — SOS saved locally ($coords) & GSM emergency SMS launched for auto-sync.';
+                                          msg = 'SOS Saved Locally ($coords) & Emergency SMS prepared.';
                                         }
 
                                         messenger.showSnackBar(
                                           SnackBar(
                                             content: Text(msg),
-                                            backgroundColor: syncedToServer
-                                                ? const Color(0xFFEF4444)
-                                                : const Color(0xFFD97706),
+                                            backgroundColor: const Color(0xFFEF4444),
                                             behavior: SnackBarBehavior.floating,
                                           ),
                                         );
                                       },
                               ),
+                              const SizedBox(height: 12),
+
+                              // ONE-TAP DIRECT GUARDIAN CALL (With or Without Microphone Active)
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 13),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 2,
+                                ),
+                                icon: const Icon(Icons.phone_in_talk, size: 20),
+                                label: Text(
+                                  user.emergencyContactPhone != null && user.emergencyContactPhone!.isNotEmpty
+                                      ? 'CALL GUARDIAN: ${user.emergencyContactName ?? "Primary"} (${user.emergencyContactPhone})'
+                                      : 'CALL PRIMARY GUARDIAN (1-TAP)',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                ),
+                                onPressed: () {
+                                  context.read<VoiceTriggerProvider>().triggerGuardianCall();
+                                },
+                              ),
                               const SizedBox(height: 10),
 
-                              // Direct Cellular Voice Call & Helpline Buttons (Zero Mobile Data Required)
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF6EE7B7),
-                                        side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.45)),
-                                        padding: const EdgeInsets.symmetric(vertical: 10),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
-                                      label: const Text('Call Guardian', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                                      onPressed: () => incProv.launchGuardianCall(user: user),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFFFCA5A5),
-                                        side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.45)),
-                                        padding: const EdgeInsets.symmetric(vertical: 10),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      icon: const Icon(Icons.local_police_outlined, size: 16),
-                                      label: Text(
-                                        'Dial ${user.preferredPoliceHelpline}',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                      ),
-                                      onPressed: () => incProv.launchGuardianCall(
-                                        overridePhone: user.preferredPoliceHelpline,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              // National Police Helpline Button
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFFCA5A5),
+                                  side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.45)),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                icon: const Icon(Icons.local_police_outlined, size: 16),
+                                label: Text(
+                                  'Dial Police Emergency (${user.preferredPoliceHelpline})',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                ),
+                                onPressed: () => incProv.launchGuardianCall(
+                                  overridePhone: user.preferredPoliceHelpline,
+                                ),
                               ),
 
                               if (incProv.lastLocation != null) ...[
@@ -374,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 Text(
                                   incProv.lastLocation!.isUnavailable
                                       ? 'GPS Status: ${incProv.lastLocation!.unavailableReason}'
-                                      : 'GPS Lock: ±${incProv.lastLocation!.accuracyMeters?.toStringAsFixed(1)}m • ${incProv.lastLocation!.timestamp?.toLocal().toString().split(".")[0]}',
+                                      : 'GPS Accuracy: ±${incProv.lastLocation!.accuracyMeters?.toStringAsFixed(1)}m • Timestamp: ${incProv.lastLocation!.timestamp?.toLocal().toString().split(".")[0]}',
                                   style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
                                   textAlign: TextAlign.center,
                                 ),
@@ -386,7 +348,112 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 20),
 
-                    // Guardian Identity Card
+                    // SAFE WORD SENTINEL CARD (With or Without Microphone Turned On)
+                    Consumer<VoiceTriggerProvider>(
+                      builder: (context, voiceProv, _) {
+                        final activeSafeWord = (user.safeWordPhrase != null && user.safeWordPhrase!.trim().isNotEmpty)
+                            ? user.safeWordPhrase!.trim()
+                            : 'help nexa';
+                        final isArmed = voiceProv.isListening;
+
+                        return Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0E131F),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isArmed
+                                  ? const Color(0xFF7C3AED).withValues(alpha: 0.5)
+                                  : const Color(0xFF1E293B),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isArmed ? Icons.mic : Icons.mic_off_outlined,
+                                        color: isArmed ? const Color(0xFFA5B4FC) : const Color(0xFF94A3B8),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'Safe Word Sentinel',
+                                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: isArmed
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                                          : const Color(0xFF64748B).withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      isArmed ? 'MIC ACTIVE' : 'MIC STANDBY',
+                                      style: TextStyle(
+                                        color: isArmed ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4),
+                                  children: [
+                                    const TextSpan(text: 'Saying "'),
+                                    TextSpan(
+                                      text: activeSafeWord,
+                                      style: const TextStyle(color: Color(0xFFA5B4FC), fontWeight: FontWeight.w800),
+                                    ),
+                                    const TextSpan(text: '", "help nexa", or "bachao" automatically calls your primary guardian and broadcasts GPS.'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Quick-Trigger Safe Word Without Microphone
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4F46E5),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                icon: const Icon(Icons.bolt, size: 18),
+                                label: Text(
+                                  'TRIGGER "$activeSafeWord" (NO MIC NEEDED)',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                                ),
+                                onPressed: () {
+                                  voiceProv.triggerSafeWordEmergency(phrase: activeSafeWord);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Safe word triggered! Dialing guardian ($activeSafeWord)...'),
+                                      backgroundColor: const Color(0xFF4F46E5),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Guardian Dossier Card
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -434,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     ),
                                     const SizedBox(height: 2),
                                     const Text(
-                                      'Verified Protected Profile',
+                                      'Protected Sentinel Profile',
                                       style: TextStyle(
                                         color: Color(0xFF64748B),
                                         fontSize: 12,
@@ -451,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
                                 ),
                                 child: Text(
-                                  auth.isOfflineSession ? 'CACHED' : 'ACTIVE',
+                                  auth.isOfflineSession ? 'SECURE' : 'ARMED',
                                   style: const TextStyle(
                                     color: Color(0xFF6EE7B7),
                                     fontSize: 11,
@@ -482,6 +549,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             'Emergency Helpline',
                             '${user.preferredPoliceHelpline}${user.cityPoliceJurisdiction != null && user.cityPoliceJurisdiction!.isNotEmpty ? " • ${user.cityPoliceJurisdiction}" : ""}',
                           ),
+                          if (user.bloodGroup != null && user.bloodGroup!.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            _buildDetailRow('Blood Group', user.bloodGroup!),
+                          ],
                         ],
                       ),
                     ),
@@ -516,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'Manage trusted contacts & cloud SMS alerts',
+                                  'Tiered contacts & SMS notification list',
                                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                                 ),
                               ],
@@ -538,97 +609,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Voice Guardian Action Card
-                    Consumer<VoiceTriggerProvider>(
-                      builder: (context, voiceProv, _) {
-                        final isGuarding = voiceProv.isListening;
-                        return Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0E131F),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: isGuarding
-                                  ? const Color(0xFF06B6D4).withValues(alpha: 0.5)
-                                  : const Color(0xFF1E293B),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isGuarding
-                                      ? const Color(0xFF06B6D4).withValues(alpha: 0.2)
-                                      : const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  isGuarding ? Icons.mic : Icons.mic_none,
-                                  color: isGuarding ? const Color(0xFF67E8F9) : const Color(0xFF94A3B8),
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          'Voice Guardian',
-                                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: isGuarding
-                                                ? const Color(0xFF06B6D4).withValues(alpha: 0.2)
-                                                : const Color(0xFF1E293B),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            isGuarding ? 'ARMED' : 'STANDBY',
-                                            style: TextStyle(
-                                              color: isGuarding ? const Color(0xFF67E8F9) : const Color(0xFF64748B),
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    const Text(
-                                      'Works offline • Calls guardian & logs SOS',
-                                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isGuarding ? const Color(0xFF06B6D4) : const Color(0xFF6366F1),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const VoiceGuardianScreen()),
-                                  );
-                                },
-                                child: const Text('Open', style: TextStyle(fontWeight: FontWeight.w700)),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -684,34 +664,96 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    // Isolated Zone Working Procedure Card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0E131F),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFF1E293B)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Emergency Working Procedure',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                    // Voice Guardian Action Card
+                    Consumer<VoiceTriggerProvider>(
+                      builder: (context, voiceProv, _) {
+                        final isGuarding = voiceProv.isListening;
+                        return Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0E131F),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isGuarding
+                                  ? const Color(0xFF06B6D4).withValues(alpha: 0.5)
+                                  : const Color(0xFF1E293B),
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          _buildStepItem('STEP 1', 'Hardware GPS Coordinate Lock (No Wi-Fi Needed)', true),
-                          _buildStepItem('STEP 2', 'Cloud Server SOS & Twilio SMS via Cellular Data', _isBackendHealthy),
-                          _buildStepItem('STEP 3', 'Direct GSM Voice Call & SMS Fallback in Dead-Zones', true),
-                          _buildStepItem('STEP 4', 'Auto-Sync Queued Alerts When Cellular Returns', true),
-                        ],
-                      ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isGuarding
+                                      ? const Color(0xFF06B6D4).withValues(alpha: 0.2)
+                                      : const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  isGuarding ? Icons.mic : Icons.mic_none,
+                                  color: isGuarding ? const Color(0xFF67E8F9) : const Color(0xFF94A3B8),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'Voice Settings',
+                                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isGuarding
+                                                ? const Color(0xFF06B6D4).withValues(alpha: 0.2)
+                                                : const Color(0xFF1E293B),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            isGuarding ? 'ARMED' : 'STANDBY',
+                                            style: TextStyle(
+                                              color: isGuarding ? const Color(0xFF67E8F9) : const Color(0xFF64748B),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Acoustic keywords & test bench',
+                                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isGuarding ? const Color(0xFF06B6D4) : const Color(0xFF6366F1),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const VoiceGuardianScreen()),
+                                  );
+                                },
+                                child: const Text('Open', style: TextStyle(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -743,49 +785,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStepItem(String tag, String title, bool isReady) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: isReady
-                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                  : const Color(0xFFF59E0B).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              tag,
-              style: TextStyle(
-                color: isReady ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Icon(
-            isReady ? Icons.check_circle : Icons.sync_problem,
-            color: isReady ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-            size: 16,
-          ),
-        ],
-      ),
     );
   }
 
