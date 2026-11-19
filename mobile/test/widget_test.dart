@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexa_safety/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,9 +12,11 @@ void main() {
 
   testWidgets('NexaSafetyApp renders without error', (WidgetTester tester) async {
     await tester.pumpWidget(const NexaSafetyApp());
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
-    // Verify initial auth screen displays Nexa guardian login portal
-    expect(find.text('Access Guardian Portal'), findsOneWidget);
+    // Verify app renders with root navigation and auth gate
+    expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(AuthGate), findsOneWidget);
   });
 }

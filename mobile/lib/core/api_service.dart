@@ -44,6 +44,8 @@ class UserProfile {
     this.age,
   });
 
+  String? get baseAddress => homeAddress;
+
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: (json['id'] ?? '').toString(),
@@ -112,16 +114,27 @@ class TrustedContact {
 
   factory TrustedContact.fromJson(Map<String, dynamic> json) {
     return TrustedContact(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      name: json['name'] as String,
-      phoneNumber: json['phone_number'] as String,
+      id: (json['id'] ?? '').toString(),
+      userId: (json['user_id'] ?? '').toString(),
+      name: json['name'] as String? ?? 'Guardian',
+      phoneNumber: json['phone_number'] as String? ?? '',
       relationship: json['relationship'] as String? ?? 'Family',
-      priorityOrder: json['priority_order'] as int? ?? 1,
+      priorityOrder: (json['priority_order'] as num?)?.toInt() ?? 1,
       isVerified: json['is_verified'] as bool? ?? false,
       createdAt: json['created_at'] as String? ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'user_id': userId,
+    'name': name,
+    'phone_number': phoneNumber,
+    'relationship': relationship,
+    'priority_order': priorityOrder,
+    'is_verified': isVerified,
+    'created_at': createdAt,
+  };
 }
 
 class ApiException implements Exception {

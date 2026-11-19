@@ -35,6 +35,18 @@ class LocationData {
 }
 
 class LocationService {
+  Future<bool> isLocationServiceEnabled() async {
+    return await Geolocator.isLocationServiceEnabled();
+  }
+
+  Future<bool> openLocationSettings() async {
+    return await Geolocator.openLocationSettings();
+  }
+
+  Future<bool> openAppSettings() async {
+    return await Geolocator.openAppSettings();
+  }
+
   Future<LocationData> getCurrentLocation() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();

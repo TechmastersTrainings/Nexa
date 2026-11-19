@@ -81,6 +81,21 @@ class IncidentProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> isLocationServiceEnabled() async {
+    return await _locationService.isLocationServiceEnabled();
+  }
+
+  Future<bool> openLocationSettings() async {
+    return await _locationService.openLocationSettings();
+  }
+
+  Future<LocationData> fetchCurrentLocation() async {
+    final loc = await _locationService.getCurrentLocation();
+    _lastLocation = loc;
+    notifyListeners();
+    return loc;
+  }
+
   /// Opens native SMS composer pre-populated with exact GPS coordinates for zero-data isolated zones.
   Future<bool> launchOfflineEmergencySms({
     required LocalIncidentItem incident,
@@ -107,6 +122,121 @@ class IncidentProvider extends ChangeNotifier {
       );
       if (await canLaunchUrl(smsUri)) {
         return await launchUrl(smsUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// Dispatches the live geological GPS location to either Guardian or Police.
+  /// 1. Locks live satellite GPS coordinates.
+  /// 2. Records an emergency incident item on device and syncs to cloud if reachable.
+  /// 3. Opens native SMS messenger with a formatted Google Maps location pin and victim dossier.
+  Future<Map<String, dynamic>> dispatchGeologicalLocation({
+    required UserProfile? user,
+    required String? token,
+    required String targetType,
+    String? overridePhone,
+  }) async {
+    final loc = await _locationService.getCurrentLocation();
+    _lastLocation = loc;
+    notifyListeners();
+
+    try {
+      await _queueService.enqueueIncident(
+        triggerType: 'geo_location_dispatch_$targetType',
+        location: loc,
+      );
+      await refreshQueueCount();
+      if (token != null) {
+        flushOfflineQueue(token);
+      }
+    } catch (_) {}
+
+    final hasCoords = loc.latitude != null && loc.longitude != null && !loc.isUnavailable;
+    final mapLink = hasCoords
+        ? 'https://maps.google.com/?q=${loc.latitude!.toStringAsFixed(6)},${loc.longitude!.toStringAsFixed(6)}'
+        : 'GPS Pending (Enable Location in Device Settings)';
+
+    String targetPhone;
+    String body;
+
+    if (targetType == 'police') {
+      targetPhone = (overridePhone != null && overridePhone.trim().isNotEmpty)
+          ? overridePhone.trim()
+          : (user?.preferredPoliceHelpline ?? '112');
+      body = '🚨 112 POLICE RESCUE DISPATCH 🚨\n'
+          'Victim: ${user?.fullName ?? "Protected Individual"}\n'
+          'Phone: ${user?.phoneNumber ?? "N/A"}\n'
+          '📍 Live GPS: $mapLink\n'
+          '${hasCoords ? "Coordinates: ${loc.latitude!.toStringAsFixed(5)}, ${loc.longitude!.toStringAsFixed(5)} (±${loc.accuracyMeters?.toStringAsFixed(0)}m)\n" : ""}'
+          'Jurisdiction: ${user?.cityPoliceJurisdiction ?? "Unknown"}\n'
+          'Safe Base: ${user?.baseAddress ?? "N/A"}\n'
+          'Urgent police intervention requested.';
+    } else {
+      targetPhone = (overridePhone != null && overridePhone.trim().isNotEmpty)
+          ? overridePhone.trim()
+          : await resolveEmergencyTargetPhone(user: user);
+      body = '🚨 EMERGENCY RESCUE ALERT 🚨\n'
+          '${user?.fullName ?? "Protected Individual"} requires immediate help!\n'
+          '📍 Live GPS: $mapLink\n'
+          '${hasCoords ? "Coordinates: ${loc.latitude!.toStringAsFixed(5)}, ${loc.longitude!.toStringAsFixed(5)} (±${loc.accuracyMeters?.toStringAsFixed(0)}m)\n" : ""}'
+          '🏠 Address: ${user?.baseAddress ?? "Registered Safe Home"}\n'
+          '🩸 Blood: ${user?.bloodGroup ?? "N/A"}\n'
+          '👮 Police Station: ${user?.cityPoliceJurisdiction ?? "Local Police"}\n'
+          'Sent via Nexa Sentinel Safety System.';
+    }
+
+    final cleanPhone = targetPhone.replaceAll(RegExp(r'[^0-9+]'), '');
+    bool smsOpened = false;
+    try {
+      final Uri smsUri = Uri(
+        scheme: 'sms',
+        path: cleanPhone,
+        queryParameters: {'body': body},
+      );
+      if (await canLaunchUrl(smsUri)) {
+        smsOpened = await launchUrl(smsUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+
+    return {
+      'opened': smsOpened,
+      'hasCoords': hasCoords,
+      'mapLink': mapLink,
+      'phone': cleanPhone,
+      'body': body,
+      'location': loc,
+    };
+  }
+
+  /// Sends live geological location via WhatsApp.
+  Future<bool> launchWhatsAppEmergencyLocation({
+    required UserProfile? user,
+    String? overridePhone,
+  }) async {
+    try {
+      final phone = (overridePhone != null && overridePhone.trim().isNotEmpty)
+          ? overridePhone.trim()
+          : await resolveEmergencyTargetPhone(user: user);
+      var cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+      if (cleanPhone.length == 10) {
+        cleanPhone = '91$cleanPhone';
+      }
+      final loc = _lastLocation ?? await _locationService.getCurrentLocation();
+      final hasCoords = loc.latitude != null && loc.longitude != null && !loc.isUnavailable;
+      final mapLink = hasCoords
+          ? 'https://maps.google.com/?q=${loc.latitude!.toStringAsFixed(6)},${loc.longitude!.toStringAsFixed(6)}'
+          : 'GPS Pending';
+
+      final message = '🚨 EMERGENCY RESCUE ALERT 🚨\n'
+          '${user?.fullName ?? "Nexa User"} needs urgent help!\n'
+          '📍 Live GPS: $mapLink\n'
+          '🏠 Base: ${user?.baseAddress ?? "Safe Home"}\n'
+          'Sent via Nexa Sentinel.';
+
+      final waUri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
+      if (await canLaunchUrl(waUri)) {
+        return await launchUrl(waUri, mode: LaunchMode.externalApplication);
       }
     } catch (_) {}
     return false;

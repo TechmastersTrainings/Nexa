@@ -13,6 +13,10 @@ class AppConstants {
   static const String keyGuardianName = 'nexa_registered_guardian_name';
   static const String keyPreferredHelpline = 'nexa_preferred_helpline';
   static const String keySafeWordPhrase = 'nexa_safe_word_phrase';
+  static const String keySavedEmail = 'nexa_saved_email';
+  static const String keySavedPassword = 'nexa_saved_password';
+  static const String keyLocalContacts = 'nexa_local_contacts_cache';
+  static const String keyLocalSafetyReports = 'nexa_local_safety_reports';
 
   // Cloud Endpoint (Cellular Mobile Data / Public Internet)
   static const String defaultRenderUrl = 'https://nexa-b73r.onrender.com/api/v1';

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/voice_trigger_provider.dart';
 import '../providers/incident_provider.dart';
+import '../services/location_service.dart';
 import '../core/api_service.dart';
 import 'contacts_screen.dart';
 import 'voice_guardian_screen.dart';
@@ -346,6 +348,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         );
                       },
                     ),
+                    const SizedBox(height: 20),
+
+                    // LIVE GEOLOGICAL LOCATION DISPATCH CARD
+                    _GeoLocationDispatchCard(user: user),
                     const SizedBox(height: 20),
 
                     // SAFE WORD SENTINEL CARD (With or Without Microphone Turned On)
@@ -809,6 +815,375 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               context.read<AuthProvider>().logout();
             },
             child: const Text('Sign Out', style: TextStyle(color: Color(0xFFEF4444))),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GeoLocationDispatchCard extends StatefulWidget {
+  final UserProfile user;
+  const _GeoLocationDispatchCard({required this.user});
+
+  @override
+  State<_GeoLocationDispatchCard> createState() => _GeoLocationDispatchCardState();
+}
+
+class _GeoLocationDispatchCardState extends State<_GeoLocationDispatchCard> {
+  bool _isAcquiring = false;
+  LocationData? _location;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLocation();
+    });
+  }
+
+  Future<void> _checkLocation() async {
+    if (!mounted) return;
+    setState(() => _isAcquiring = true);
+    try {
+      final loc = await context.read<IncidentProvider>().fetchCurrentLocation();
+      if (mounted) {
+        setState(() {
+          _location = loc;
+          _isAcquiring = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isAcquiring = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final guardianName = widget.user.emergencyContactName ?? 'Primary Guardian';
+    final guardianPhone = widget.user.emergencyContactPhone ?? '';
+    final policeNumber = widget.user.preferredPoliceHelpline;
+    final isGpsDisabled = _location?.isUnavailable == true &&
+        (_location?.unavailableReason?.contains('disabled') ?? false);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E131F),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF0284C7).withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.satellite_alt_rounded, color: Color(0xFF38BDF8), size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'Live Geological Location',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (_location != null && !_location!.isUnavailable)
+                      ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                      : isGpsDisabled
+                          ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                          : const Color(0xFF0284C7).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  (_location != null && !_location!.isUnavailable)
+                      ? 'GPS LOCKED'
+                      : isGpsDisabled
+                          ? 'GPS OFF'
+                          : 'SEARCHING',
+                  style: TextStyle(
+                    color: (_location != null && !_location!.isUnavailable)
+                        ? const Color(0xFF34D399)
+                        : isGpsDisabled
+                            ? const Color(0xFFF87171)
+                            : const Color(0xFF7DD3FC),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Locks real-time satellite GPS coordinates and dispatches your exact Google Maps pin directly to Guardian or Police via SMS & Server.',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+
+          // GPS Status or Fix Display Box
+          if (isGpsDisabled)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_off, color: Color(0xFFF87171), size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Device location service is turned off.',
+                      style: TextStyle(color: Color(0xFFFCA5A5), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDC2626),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () async {
+                      await context.read<IncidentProvider>().openLocationSettings();
+                      await Future.delayed(const Duration(seconds: 2));
+                      _checkLocation();
+                    },
+                    child: const Text('Turn On', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+                  ),
+                ],
+              ),
+            )
+          else if (_location != null && !_location!.isUnavailable && _location!.latitude != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0369A1).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on, color: Color(0xFF38BDF8), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_location!.latitude!.toStringAsFixed(6)}°, ${_location!.longitude!.toStringAsFixed(6)}°',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Accuracy: ±${_location!.accuracyMeters?.toStringAsFixed(1)}m • Live Fix Active',
+                          style: const TextStyle(color: Color(0xFF7DD3FC), fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: _isAcquiring
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(color: Color(0xFF38BDF8), strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh, color: Color(0xFF38BDF8), size: 20),
+                    tooltip: 'Refresh Location',
+                    onPressed: _isAcquiring ? null : _checkLocation,
+                  ),
+                ],
+              ),
+            ),
+
+          // Action 1: Send Live GPS to Guardian
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+            ),
+            icon: _isAcquiring
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_rounded, size: 18),
+            label: Text(
+              guardianPhone.isNotEmpty
+                  ? 'SEND LIVE GPS TO $guardianName ($guardianPhone)'
+                  : 'SEND LIVE GPS TO PRIMARY GUARDIAN',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            ),
+            onPressed: _isAcquiring
+                ? null
+                : () async {
+                    setState(() => _isAcquiring = true);
+                    final auth = context.read<AuthProvider>();
+                    final incProv = context.read<IncidentProvider>();
+                    final res = await incProv.dispatchGeologicalLocation(
+                      user: widget.user,
+                      token: auth.token,
+                      targetType: 'guardian',
+                    );
+                    setState(() {
+                      _isAcquiring = false;
+                      _location = res['location'] as LocationData?;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res['opened'] == true
+                              ? 'Emergency SMS prepared with live GPS location link!'
+                              : 'Location telemetry logged to cloud safety portal.'),
+                          backgroundColor: const Color(0xFF0284C7),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+          ),
+          const SizedBox(height: 10),
+
+          // Action 2: Send Live GPS to Police (112)
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF991B1B),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+            ),
+            icon: const Icon(Icons.local_police, size: 18),
+            label: Text(
+              'SEND LIVE GPS TO POLICE ($policeNumber)',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            ),
+            onPressed: _isAcquiring
+                ? null
+                : () async {
+                    setState(() => _isAcquiring = true);
+                    final auth = context.read<AuthProvider>();
+                    final incProv = context.read<IncidentProvider>();
+                    final res = await incProv.dispatchGeologicalLocation(
+                      user: widget.user,
+                      token: auth.token,
+                      targetType: 'police',
+                    );
+                    setState(() {
+                      _isAcquiring = false;
+                      _location = res['location'] as LocationData?;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res['opened'] == true
+                              ? 'Police rescue dispatch prepared with live GPS coordinates!'
+                              : 'Police emergency telemetry logged.'),
+                          backgroundColor: const Color(0xFFEF4444),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+          ),
+          const SizedBox(height: 10),
+
+          // Quick actions row: WhatsApp Pin & Copy Maps Link
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF34D399),
+                    side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                  label: const Text(
+                    'WhatsApp Pin',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: () async {
+                    final incProv = context.read<IncidentProvider>();
+                    final opened = await incProv.launchWhatsAppEmergencyLocation(user: widget.user);
+                    if (!opened && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not open WhatsApp. Ensure WhatsApp is installed.'),
+                          backgroundColor: Color(0xFFF59E0B),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF7DD3FC),
+                    side: BorderSide(color: const Color(0xFF0284C7).withValues(alpha: 0.4)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text(
+                    'Copy Maps Link',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: () {
+                    final loc = _location;
+                    if (loc != null && !loc.isUnavailable && loc.latitude != null) {
+                      final url = 'https://maps.google.com/?q=${loc.latitude!.toStringAsFixed(6)},${loc.longitude!.toStringAsFixed(6)}';
+                      Clipboard.setData(ClipboardData(text: url));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied live GPS link to clipboard: $url'),
+                          backgroundColor: const Color(0xFF0284C7),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enable GPS or wait for location fix.'),
+                          backgroundColor: Color(0xFFF59E0B),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),

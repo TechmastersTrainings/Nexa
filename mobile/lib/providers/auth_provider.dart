@@ -26,6 +26,7 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isOfflineSession => _isOfflineSession;
   bool get isAuthenticated => _status == AuthStatus.authenticated && _user != null;
+  bool get isTokenOffline => _token == null || _token!.startsWith('offline-') || _token!.contains('cached');
 
   void clearError() {
     _errorMessage = null;
@@ -60,41 +61,94 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final savedToken = prefs.getString(AppConstants.keyToken);
 
-      if (savedToken != null && savedToken.isNotEmpty) {
+      if (savedToken != null && savedToken.isNotEmpty && !savedToken.startsWith('offline-')) {
         _token = savedToken;
         try {
           _user = await _apiService.getProfile(savedToken);
           _isOfflineSession = false;
           await _persistUserSafetyCache(_user!);
           _status = AuthStatus.authenticated;
+          notifyListeners();
+          return;
         } on ApiException catch (e) {
           if (e.statusCode == 401 || e.statusCode == 403) {
-            await prefs.remove(AppConstants.keyToken);
-            _token = null;
-            _user = null;
-            _status = AuthStatus.unauthenticated;
-          } else {
-            // Server cold-starting or offline: restore from local safety cache
-            await _restoreCachedProfile(prefs);
+            // Token expired or invalid: attempt automatic background re-authentication
+            final reauthed = await syncOrReauthenticate();
+            if (reauthed) return;
           }
+          await _restoreCachedProfile(prefs);
         } catch (_) {
-          // Zero-internet or server warming: maintain active protected session
           await _restoreCachedProfile(prefs);
         }
       } else {
-        // Check if there is a cached profile from previous registration
-        final cachedRaw = prefs.getString(AppConstants.keyUserCache);
-        if (cachedRaw != null && cachedRaw.isNotEmpty) {
-          await _restoreCachedProfile(prefs);
-        } else {
-          _status = AuthStatus.unauthenticated;
-        }
+        // If offline token or cached session, attempt to promote to real server JWT
+        await _restoreCachedProfile(prefs);
+        await syncOrReauthenticate();
       }
     } catch (_) {
       _status = AuthStatus.unauthenticated;
     }
 
     notifyListeners();
+  }
+
+  /// Automatically registers or logs in with stored credentials to obtain a real server JWT
+  Future<bool> syncOrReauthenticate() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString(AppConstants.keySavedEmail) ?? _user?.email;
+      final password = prefs.getString(AppConstants.keySavedPassword);
+
+      if (email == null || email.trim().isEmpty) return false;
+
+      // 1. Attempt login with saved credentials
+      if (password != null && password.isNotEmpty) {
+        try {
+          final serverToken = await _apiService.login(email.trim(), password);
+          _token = serverToken;
+          await prefs.setString(AppConstants.keyToken, serverToken);
+          _user = await _apiService.getProfile(serverToken);
+          _isOfflineSession = false;
+          await _persistUserSafetyCache(_user!);
+          _status = AuthStatus.authenticated;
+          notifyListeners();
+          return true;
+        } on ApiException catch (e) {
+          // If server returns 401/404, user may not exist on Render database yet
+          if ((e.statusCode == 401 || e.statusCode == 404) && _user != null) {
+            try {
+              await _apiService.register(
+                email: email.trim(),
+                password: password,
+                fullName: _user!.fullName.isNotEmpty ? _user!.fullName : 'Protected User',
+                phoneNumber: _user!.phoneNumber.isNotEmpty ? _user!.phoneNumber : '9999999999',
+                age: _user!.age,
+                emergencyContactName: _user!.emergencyContactName ?? prefs.getString(AppConstants.keyGuardianName),
+                emergencyContactPhone: _user!.emergencyContactPhone ?? prefs.getString(AppConstants.keyGuardianPhone),
+                emergencyContactRelation: _user!.emergencyContactRelation,
+                homeAddress: _user!.homeAddress,
+                cityPoliceJurisdiction: _user!.cityPoliceJurisdiction,
+                preferredPoliceHelpline: _user!.preferredPoliceHelpline,
+                bloodGroup: _user!.bloodGroup,
+                medicalNotes: _user!.medicalNotes,
+                safeWordPhrase: _user!.safeWordPhrase,
+              );
+
+              final serverToken = await _apiService.login(email.trim(), password);
+              _token = serverToken;
+              await prefs.setString(AppConstants.keyToken, serverToken);
+              _user = await _apiService.getProfile(serverToken);
+              _isOfflineSession = false;
+              await _persistUserSafetyCache(_user!);
+              _status = AuthStatus.authenticated;
+              notifyListeners();
+              return true;
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+    return false;
   }
 
   Future<void> _restoreCachedProfile(SharedPreferences prefs) async {
@@ -112,7 +166,7 @@ class AuthProvider extends ChangeNotifier {
     final safeWord = prefs.getString(AppConstants.keySafeWordPhrase) ?? 'help nexa';
     _user = UserProfile(
       id: 'offline-guardian-session',
-      email: '',
+      email: prefs.getString(AppConstants.keySavedEmail) ?? '',
       fullName: 'Nexa Protected User',
       phoneNumber: '',
       isActive: true,
@@ -134,11 +188,13 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keySavedEmail, email.trim());
+    await prefs.setString(AppConstants.keySavedPassword, password);
+
     try {
       final token = await _apiService.login(email, password);
       _token = token;
-
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.keyToken, token);
 
       _user = await _apiService.getProfile(token);
@@ -149,8 +205,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      // Offline / server sleep fallback: check local profile cache
-      final prefs = await SharedPreferences.getInstance();
+      // Offline fallback: check local profile cache
       final cachedRaw = prefs.getString(AppConstants.keyUserCache);
       if (cachedRaw != null && cachedRaw.isNotEmpty) {
         try {
@@ -195,6 +250,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keySavedEmail, email.trim());
+    await prefs.setString(AppConstants.keySavedPassword, password);
 
     final safeWord = (safeWordPhrase != null && safeWordPhrase.trim().isNotEmpty)
         ? safeWordPhrase.trim()
@@ -242,9 +299,7 @@ class AuthProvider extends ChangeNotifier {
       return true;
     }
 
-    // 3. Built-in Render Integration:
-    // If Render backend is sleeping, cold-starting, or down, NEVER block user onboarding!
-    // Instantly activate local protected profile with full emergency sentinel shields.
+    // 3. Fallback: activate local protected profile immediately
     final localProfile = UserProfile(
       id: 'local-protected-${DateTime.now().millisecondsSinceEpoch}',
       email: email.trim(),
@@ -275,11 +330,19 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.authenticated;
     _errorMessage = null;
     notifyListeners();
+
+    // Trigger background registration sync attempt
+    syncOrReauthenticate();
+
     return true;
   }
 
   Future<void> refreshProfile() async {
-    if (_token == null || _token!.startsWith('offline-session')) return;
+    if (_token == null) return;
+    if (_token!.startsWith('offline-')) {
+      await syncOrReauthenticate();
+      return;
+    }
     try {
       _user = await _apiService.getProfile(_token!);
       _isOfflineSession = false;
@@ -287,7 +350,10 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
-        await logout();
+        final reauthed = await syncOrReauthenticate();
+        if (!reauthed) {
+          await logout();
+        }
       }
     } catch (_) {}
   }
@@ -296,6 +362,7 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.keyToken);
     await prefs.remove(AppConstants.keyUserCache);
+    await prefs.remove(AppConstants.keySavedPassword);
     _token = null;
     _user = null;
     _errorMessage = null;
