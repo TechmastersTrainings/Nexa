@@ -60,8 +60,30 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error processing {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "detail": f"{type(exc).__name__}: {str(exc)}"
+        }
+    )
+
+
 # Include API v1 router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+
+@app.on_event("startup")
+def on_startup():
+    try:
+        import app.models
+        Base.metadata.create_all(bind=engine)
+        logger.info(f"Startup: database tables verified on {engine.dialect.name}.")
+    except Exception as e:
+        logger.error(f"Startup: database schema creation error: {e}", exc_info=True)
 
 
 @app.api_route("/", methods=["GET", "HEAD"], summary="Root Status")
