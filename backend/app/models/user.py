@@ -5,7 +5,7 @@ from app.models.base import UUIDMixin, TimestampMixin
 
 
 class User(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "users"
+    __tablename__ = "nexa_users"
 
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)

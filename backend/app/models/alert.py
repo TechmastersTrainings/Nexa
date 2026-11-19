@@ -5,10 +5,10 @@ from app.models.base import UUIDMixin, TimestampMixin, GUID, UUID
 
 
 class IncidentAlertLog(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "incident_alert_logs"
+    __tablename__ = "nexa_incident_alert_logs"
 
-    incident_id = Column(UUID(as_uuid=True), ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True)
-    recipient_contact_id = Column(UUID(as_uuid=True), ForeignKey("trusted_contacts.id", ondelete="SET NULL"), nullable=True)
+    incident_id = Column(UUID(as_uuid=True), ForeignKey("nexa_incidents.id", ondelete="CASCADE"), nullable=False, index=True)
+    recipient_contact_id = Column(UUID(as_uuid=True), ForeignKey("nexa_trusted_contacts.id", ondelete="SET NULL"), nullable=True)
     recipient_phone = Column(String(20), nullable=False)
     message_body = Column(Text, nullable=False)
     provider = Column(String(50), nullable=False, default="twilio")

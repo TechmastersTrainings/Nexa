@@ -5,9 +5,9 @@ from app.models.base import UUIDMixin, TimestampMixin, utc_now, GUID, UUID
 
 
 class UserDevice(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "user_devices"
+    __tablename__ = "nexa_user_devices"
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("nexa_users.id", ondelete="CASCADE"), nullable=False, index=True)
     device_id = Column(String(100), nullable=False, index=True)
     device_name = Column(String(100), nullable=False)
     platform = Column(String(50), nullable=False, default="android")

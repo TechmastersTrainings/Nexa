@@ -5,9 +5,9 @@ from app.models.base import UUIDMixin, TimestampMixin, GUID, UUID
 
 
 class SafetyReport(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "safety_reports"
+    __tablename__ = "nexa_safety_reports"
 
-    reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey("nexa_users.id", ondelete="SET NULL"), nullable=True, index=True)
     title = Column(String(150), nullable=False)
     description = Column(Text, nullable=True)
     category = Column(String(50), nullable=False, default="poor_lighting")

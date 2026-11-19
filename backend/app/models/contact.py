@@ -5,9 +5,9 @@ from app.models.base import UUIDMixin, TimestampMixin, GUID, UUID
 
 
 class TrustedContact(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "trusted_contacts"
+    __tablename__ = "nexa_trusted_contacts"
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("nexa_users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     phone_number = Column(String(20), nullable=False)
     relationship = Column(String(50), nullable=False, default="Family")

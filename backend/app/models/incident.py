@@ -5,9 +5,9 @@ from app.models.base import UUIDMixin, TimestampMixin, utc_now, GUID, UUID
 
 
 class Incident(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "incidents"
+    __tablename__ = "nexa_incidents"
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("nexa_users.id", ondelete="CASCADE"), nullable=False, index=True)
     client_incident_id = Column(String(100), nullable=False, index=True)
     trigger_type = Column(String(50), nullable=False, default="safe_word")
     status = Column(String(50), nullable=False, default="recorded")
